@@ -53,6 +53,7 @@ const coursesData = [
   { code: 'PHIL1010', name: 'Introduction to Philosophy' },
 ];
 const clubsData = ['Coding Club', 'AI Society', 'Drama Club', 'Photography Club', 'Debate Society'];
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -139,18 +140,6 @@ const Signup = () => {
     }
     if (step === 2) {
       try {
-        console.log(
-          JSON.stringify({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            role: formData.role,
-            username: formData.username,
-            email: formData.email,
-            password: formData.password,
-            isVerified: false,
-          }),
-          'hello'
-        );
         const response = await fetch('http://localhost:5000/api/users/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -161,27 +150,45 @@ const Signup = () => {
             username: formData.username,
             email: formData.email,
             password: formData.password,
-            isVerified: false,
           }),
         });
 
         const result = await response.json();
 
-        if (response.status === 409) {
-          alert(result.message); // "User already exists. Please login."
-          navigate('/login'); // redirect to login
-          return;
+        if (formData.email === '') {
         }
-        if (!response.ok) {
-          alert(result.message || 'OTP send failed');
+
+        if (response.status === 400 || response.status === 409) {
+          // Invalid domain or existing user
+          alert(result.message || 'Registration failed. Redirecting to login.');
+          navigate('/login');
           return;
         }
 
-        alert('OTP sent to your email');
-        setStep(2.5);
+        if (!passwordRegex.test(formData.password)) {
+          alert(
+            'Invalid password. Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters '
+          );
+          navigate('/login'); // ✅ force redirect
+          return false;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          alert('Passwords do not match. Redirecting to login.');
+          navigate('/login');
+          return false;
+        }
+
+        if (!response.ok) {
+          alert('Something went wrong. Try again.');
+          return;
+        }
+
+        alert('OTP sent to your email.');
+        setStep(2.5); // ✅ Go to OTP input
       } catch (err) {
-        console.error(err);
-        alert('Something went wrong sending OTP');
+        console.error('Registration error:', err);
+        alert('Something went wrong. Try again.');
       }
       return;
     }
@@ -210,7 +217,8 @@ const Signup = () => {
   };
 
   const handleNext = async () => {
-    if (!validateFields()) return;
+    const isValid = await validateFields();
+    if (!isValid) return;
 
     if (formData.role === 'Student' && step >= 6) {
       alert('Student account created successfully.');
@@ -456,7 +464,8 @@ const Signup = () => {
                 </div>
                 <div className='input-group password-wrapper'>
                   <label>
-                    Password*{' '}
+                    Password* (Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special
+                    character (!@#$%^&*), and be more than 7 characters)
                     <span data-tooltip-id='password-tooltip' className='info-icon'>
                       i
                     </span>
