@@ -12,16 +12,45 @@ function Login() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError('Both email and password are required.');
-    } else if (!email.endsWith('@student.kpu.ca')) {
-      setError('Please enter a valid KPU email address.');
-    } else {
-      setError('');
-      navigate('/');
+      return;
     }
-  };
+
+    //Validate only student/mentor roles here later
+    if (!email.endsWith('@student.kpu.ca') && !email.endsWith('@mentor.kpu.ca')) {
+      setError('Only KPU student or mentor emails are allowed.');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/api/users/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.message || 'Login failed');
+      return;
+    }
+
+    //Save token + user (if returned by backend)
+    if (data.token) localStorage.setItem('token', data.token);
+    if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+
+    setError('');
+    navigate('/dashboard'); 
+  } 
+  catch (err) {
+    console.error('Login error:', err);
+    setError('Something went wrong. Please try again later.');
+  }
+};
+
 
   return (
     <div className='login-container'>
