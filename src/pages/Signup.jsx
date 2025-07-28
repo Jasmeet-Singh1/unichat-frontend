@@ -349,7 +349,26 @@ const Signup = () => {
       designation: '',
     }));
   };
-
+const AvailabilityComponent = () => {
+  const [availabilityList, setAvailabilityList] = useState([]);
+  const [selectedDay, setSelectedDay] = useState('');
+  const [fromTime, setFromTime] = useState('');
+  const [toTime, setToTime] = useState('');
+  const handleAddAvailability = () => {
+    if (selectedDay && fromTime && toTime) {
+      setAvailabilityList(prev => [
+        ...prev,
+        { day: selectedDay, from: fromTime, to: toTime }
+      ]);
+      // Reset the input fields
+      setSelectedDay('');
+      setFromTime('');
+      setToTime('');
+    }
+  };
+  const handleRemoveAvailability = (index) => {
+    setAvailabilityList(prev => prev.filter((_, i) => i !== index));
+  };
   const verifyOtp = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
@@ -548,10 +567,14 @@ const Signup = () => {
                   <label>Enter OTP sent to your email</label>
                   <input type='text' name='otp' value={formData.otp || ''} onChange={handleChange} required />
                 </div>
-                <button onClick={verifyOtp}>Verify OTP</button>
               </div>
             )}
-
+         {step !== 2.5 && (
+          <div className='button-group'>
+            {step > 1 && <button onClick={handleBack}>Back</button>}
+            <button onClick={handleNext}>Next</button>
+          </div>
+        )}
             {step === 3 && (formData.role === 'Student' || formData.role === 'Mentor') && (
               <div className='form-block'>
                 <h2>Step 3: Bio</h2>
@@ -796,126 +819,136 @@ const Signup = () => {
             {formData.role === 'Mentor' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
-                <div className='input-group'>
-                  <label>
-                    Course Expertise*{' '}
-                    <span data-tooltip-id='courseExpertise-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='courseExpertise-tooltip' content='Your area of expertise' />
-                  <input
-                    type='text'
-                    name='courseExpertise'
-                    value={formData.courseExpertise}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className='input-group'>
-                  <label>
-                    Course Name*{' '}
-                    <span data-tooltip-id='courseNameMentor-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='courseNameMentor-tooltip' content='Name of the course you teach' />
 
-                  <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
-                    <option value=''>Select Course</option>
-                    {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className='input-group'>
-                  <label>
-                    Topics Covered*{' '}
-                    <span data-tooltip-id='topicCovered-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='topicCovered-tooltip' content='Topics you cover in your course' />
-                  <input
-                    type='text'
-                    name='topicCovered'
-                    value={formData.topicCovered}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className='input-group'>
-                  <label>
-                    Instructor{' '}
-                    <span data-tooltip-id='instructorMentor-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='instructorMentor-tooltip' content='Name of the instructor (optional)' />
-                  <input type='text' name='instructor' value={formData.instructor} onChange={handleChange} />
-                </div>
-              </div>
-            )}
+{/* Course Expertise Heading */}
+<h3>Course Expertise</h3>
+
+{/* Course Name */}
+<div className='input-group'>
+  <label>
+    Course Name*{' '}
+    <span data-tooltip-id='courseNameMentor-tooltip' className='info-icon'>
+      i
+    </span>
+  </label>
+  <Tooltip id='courseNameMentor-tooltip' content='Name of the course you teach' />
+  <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
+    <option value=''>Select Course</option>
+    {courses.map((course) => (
+      <option key={course} value={course}>
+        {course}
+      </option>
+    ))}
+  </select>
+</div>
+
+{/* Topics Covered */}
+<div className='input-group'>
+  <label>
+    Topics Covered*{' '}
+    <span data-tooltip-id='topicCovered-tooltip' className='info-icon'>
+      i
+    </span>
+  </label>
+  <Tooltip id='topicCovered-tooltip' content='Topics you cover in your course' />
+  <input
+    type='text'
+    name='topicCovered'
+    value={formData.topicCovered}
+    onChange={handleChange}
+    required
+  />
+</div>
+
+{/* Grade (Optional) */}
+<div className='input-group'>
+  <label>
+    Grade{' '}
+    <span data-tooltip-id='grade-tooltip' className='info-icon'>
+      i
+    </span>
+  </label>
+  <Tooltip id='grade-tooltip' content='Optional grade for the course' />
+  <select name='grade' value={formData.grade} onChange={handleChange}>
+    <option value=''>Select Grade (Optional)</option>
+    <option value='A+'>A+</option>
+    <option value='A'>A</option>
+    <option value='A-'>A-</option>
+    <option value='B+'>B+</option>
+  </select>
+</div>
+
+{/* Instructor */}
+<div className='input-group'>
+  <label>
+    Instructor{' '}
+    <span data-tooltip-id='instructorMentor-tooltip' className='info-icon'>
+      i
+    </span>
+  </label>
+  <Tooltip id='instructorMentor-tooltip' content='Name of the instructor (optional)' />
+  <input type='text' name='instructor' value={formData.instructor} onChange={handleChange} />
+</div>
 
             {formData.role === 'Mentor' && step === 6 && (
-              <div className='form-block'>
-                <h2>Step 6: Availability</h2>
-                <div className='input-group'>
-                  <label>
-                    Availability Days{' '}
-                    <span data-tooltip-id='availabilityDays-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='availabilityDays-tooltip' content='Select days you are available' />
-                  <select
-                    multiple
-                    name='availabilityDays'
-                    value={formData.availabilityDays}
-                    onChange={handleChange}
-                  >
-                    <option value='Monday'>Monday</option>
-                    <option value='Tuesday'>Tuesday</option>
-                    <option value='Wednesday'>Wednesday</option>
-                    <option value='Thursday'>Thursday</option>
-                    <option value='Friday'>Friday</option>
-                  </select>
-                </div>
-                <div className='input-group'>
-                  <label>
-                    From Time{' '}
-                    <span data-tooltip-id='availabilityFrom-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='availabilityFrom-tooltip' content='Start time of availability' />
-                  <input
-                    type='time'
-                    name='availabilityFrom'
-                    value={formData.availabilityFrom}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className='input-group'>
-                  <label>
-                    To Time{' '}
-                    <span data-tooltip-id='availabilityTo-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='availabilityTo-tooltip' content='End time of availability' />
-                  <input
-                    type='time'
-                    name='availabilityTo'
-                    value={formData.availabilityTo}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            )}
+              <div className='form-block'> 
+      <h2>Step 6: Availability</h2>
+      {/* Day Selection */}
+      <div className='input-group'>
+        <label>
+          Availability Day{' '}
+          <span data-tooltip-id='availabilityDay-tooltip' className='info-icon'>
+            i
+          </span>
+        </label>
+        <Tooltip id='availabilityDay-tooltip' content='Select a day you are available' />
+        <select value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)} required>
+          <option value=''>Select Day</option>
+          <option value='Monday'>Monday</option>
+          <option value='Tuesday'>Tuesday</option>
+          <option value='Wednesday'>Wednesday</option>
+          <option value='Thursday'>Thursday</option>
+          <option value='Friday'>Friday</option>
+        </select>
+      </div>
 
+      {/* From Time Selection */}
+      <div className='input-group'>
+        <label>From Time</label>
+        <input
+          type='time'
+          value={fromTime}
+          onChange={(e) => setFromTime(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* To Time Selection */}
+      <div className='input-group'>
+        <label>To Time</label>
+        <input
+          type='time'
+          value={toTime}
+          onChange={(e) => setToTime(e.target.value)}
+          required
+        />
+      </div>
+
+      <button type='button' onClick={handleAddAvailability} className='add-button'>
+        ➕ Add Availability
+      </button>
+
+      {/* Displaying the List of Availabilities */}
+      <h3>Selected Availability</h3>
+      <ul>
+        {availabilityList.map((availability, index) => (
+          <li key={index}>
+            {availability.day}: {availability.from} - {availability.to}
+            <button onClick={() => handleRemoveAvailability(index)}>❌ Remove</button>
+          </li>
+        ))}
+      </ul>
+    </div>
             {formData.role === 'Mentor' && step === 7 && (
               <div className='form-block'>
                 <h2>Step 7: Upload Proof</h2>
@@ -1061,13 +1094,6 @@ const Signup = () => {
             )}
           </motion.div>
         </AnimatePresence>
-
-        {step !== 2.5 && (
-          <div className='button-group'>
-            {step > 1 && <button onClick={handleBack}>Back</button>}
-            <button onClick={handleNext}>Next</button>
-          </div>
-        )}
         <p className='login-text'>
           Already have an account?{' '}
           <a href='/login' className='login-link'>
