@@ -75,11 +75,31 @@
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.form-block::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form-block::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.form-block::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.form-block::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .form-block h2 {
   font-size: 1.5rem;
-  color: #3A86FF;
+  color: #3a86ff;
   margin-bottom: 1rem;
 }
 
@@ -97,7 +117,6 @@
 }
 
 .input-group .info-icon {
-  margin-left: 6px;
   color: #fff;
   background: #800040;
   padding: 2px 6px;
@@ -110,6 +129,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; /* Prevent icon from shrinking */
 }
 
 input,
@@ -123,42 +143,47 @@ textarea {
   transition: border 0.3s ease;
   background-color: rgba(255, 255, 255, 0.9);
   color: #111;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border: 1px solid #3A86FF;
+  border: 1px solid #3a86ff;
   box-shadow: 0 0 0 2px rgba(58, 134, 255, 0.2);
 }
 
 .password-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-with-icon {
   position: relative;
-}
-
-.password-wrapper input {
   width: 100%;
-  padding-right: 2.5rem; 
 }
 
-.password-wrapper span {
+.input-with-icon input {
+  width: 100%;
+  padding-right: 2.5rem; /* Space for eye icon */
+}
+
+.input-with-icon .eye-icon {
   position: absolute;
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   color: #555;
+  font-size: 1.2rem;
 }
 
-.button-group {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
-}
-
+.add-button,
 button {
   padding: 0.75rem 2rem;
-  background: #3A86FF;
+  background: #3a86ff;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -167,10 +192,23 @@ button {
   transition: background 0.3s ease;
 }
 
+.add-button:hover,
 button:hover {
-  background: #2C3E50;
+  background: #2c3e50;
 }
 
+.course-list,
+.club-list {
+  margin-top: 1rem;
+}
+
+.course-box,
+.club-box {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -213,6 +251,7 @@ input[type="file"] {
     padding: 0.7rem 0.9rem;
   }
 
+  .add-button,
   button {
     width: 100%;
     font-size: 1rem;
@@ -237,40 +276,21 @@ input[type="file"] {
   border-radius: 4px;
   z-index: 1000;
 }
+
 .login-text {
   margin-top: 12px;
   font-size: 0.9rem;
   color: #ffffff;
   text-align: center;
 }
+
 .login-link {
   color: #00cfff;
   font-weight: bold;
   text-decoration: none;
 }
+
 .login-link:hover {
   text-decoration: underline;
   color: #7f5af0;
-}
-.form-block {
-  max-height: 60vh; 
-  overflow-y: auto;
-  padding-right: 10px; 
-}
-
-.form-block::-webkit-scrollbar {
-  width: 8px;
-}
-
-.form-block::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.form-block::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.form-block::-webkit-scrollbar-thumb:hover {
-  background: #555;
 }
