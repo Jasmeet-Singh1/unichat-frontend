@@ -508,28 +508,39 @@ const Signup = () => {
                     onChange={handleChange}
                     required
                   />
-                  <span onClick={togglePassword}>{showPassword ? <FaEyeSlash /> : <FaEye />}</span>
+                         <span onClick={togglePassword} className="eye-icon">
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </span>
+                  </div>
                 </div>
-                <div className='input-group password-wrapper'>
+                <div className="input-group password-wrapper">
                   <label>
-                    Confirm Password*{' '}
-                    <span data-tooltip-id='confirmPassword-tooltip' className='info-icon'>
+                    Confirm Password*{" "}
+                    <span
+                      data-tooltip-id="confirmPassword-tooltip"
+                      className="info-icon"
+                    >
                       i
                     </span>
                   </label>
-                  <Tooltip id='confirmPassword-tooltip' content='Must match the password' />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name='confirmPassword'
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    required
+                  <Tooltip
+                    id="confirmPassword-tooltip"
+                    content="Must match the password"
                   />
-                  <span onClick={toggleConfirmPassword}>{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</span>
+                  <div className="input-with-icon">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                    />
+                    <span onClick={toggleConfirmPassword} className="eye-icon">
+                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
-
             {step === 2.5 && (
               <div className='form-block'>
                 <h2>Step 2.5: Verify Email</h2>
