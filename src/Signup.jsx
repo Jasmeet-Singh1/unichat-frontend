@@ -6,62 +6,62 @@ import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
 import './Signup.css';
 
-// const programTypesData = [
-//   'Certificate',
-//   'Diploma',
-//   'Baccalaureate Degree',
-//   'Post Baccalaureate Diploma',
-//   'Graduate Diploma',
-//   'Graduate Certificate',
-//   'Associate Degree',
-//   'Continuing and Professional Studies',
-//   'Other',
-// ];
-// const programNamesData = [
-//   'Business Administration',
-//   'Engineering',
-//   'Psychology',
-//   'Computer Science',
-//   'Health Sciences',
-//   'Nursing',
-//   'Education',
-//   'Arts',
-//   'Science',
-//   'Social Work',
-// ];
-// const facultyData = [
-//   'Science',
-//   'Business',
-//   'Engineering',
-//   'Faculty of Arts',
-//   'Faculty of Health',
-//   'Faculty of Trades and Technology',
-//   'Faculty of Academic and Career Advancement',
-//   'Faculty of Education',
-//   'Faculty of Global and Community Studies',
-// ];
-// const coursesData = [
-//   { code: 'CS1000', name: 'Intro to Programming' },
-//   { code: 'CS1100', name: 'Data Structures' },
-//   { code: 'MATH1100', name: 'Calculus I' },
-//   { code: 'ENG1200', name: 'Academic Writing' },
-//   { code: 'BIO1010', name: 'General Biology' },
-//   { code: 'CHEM1010', name: 'General Chemistry' },
-//   { code: 'PSYCH1010', name: 'Introduction to Psychology' },
-//   { code: 'HIST1010', name: 'World History' },
-//   { code: 'ECON1010', name: 'Principles of Economics' },
-//   { code: 'PHIL1010', name: 'Introduction to Philosophy' },
-// ];
-// const clubsData = ['Coding Club', 'AI Society', 'Drama Club', 'Photography Club', 'Debate Society'];
+const programTypesData = [
+  'Certificate',
+  'Diploma',
+  'Baccalaureate Degree',
+  'Post Baccalaureate Diploma',
+  'Graduate Diploma',
+  'Graduate Certificate',
+  'Associate Degree',
+  'Continuing and Professional Studies',
+  'Other',
+];
+const programNamesData = [
+  'Business Administration',
+  'Engineering',
+  'Psychology',
+  'Computer Science',
+  'Health Sciences',
+  'Nursing',
+  'Education',
+  'Arts',
+  'Science',
+  'Social Work',
+];
+const facultyData = [
+  'Science',
+  'Business',
+  'Engineering',
+  'Faculty of Arts',
+  'Faculty of Health',
+  'Faculty of Trades and Technology',
+  'Faculty of Academic and Career Advancement',
+  'Faculty of Education',
+  'Faculty of Global and Community Studies',
+];
+const coursesData = [
+  { code: 'CS1000', name: 'Intro to Programming' },
+  { code: 'CS1100', name: 'Data Structures' },
+  { code: 'MATH1100', name: 'Calculus I' },
+  { code: 'ENG1200', name: 'Academic Writing' },
+  { code: 'BIO1010', name: 'General Biology' },
+  { code: 'CHEM1010', name: 'General Chemistry' },
+  { code: 'PSYCH1010', name: 'Introduction to Psychology' },
+  { code: 'HIST1010', name: 'World History' },
+  { code: 'ECON1010', name: 'Principles of Economics' },
+  { code: 'PHIL1010', name: 'Introduction to Philosophy' },
+];
+const clubsData = ['Coding Club', 'AI Society', 'Drama Club', 'Photography Club', 'Debate Society'];
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
 
 const Signup = () => {
   const navigate = useNavigate();
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+
   const [step, setStep] = useState(1);
-  const [programs, setPrograms] = useState([]);
-  const [availableClubs, setAvailableClubs] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otp, setOtp] = useState('');
   const [formData, setFormData] = useState(() => {
     const savedRole = localStorage.getItem('role') || '';
     return {
@@ -76,13 +76,12 @@ const Signup = () => {
       programName: '',
       programType: '',
       courseCode: '',
-      course: '',
+      courseName: '',
       semester: '',
       year: '',
       instructor: '',
       gradDate: '',
-      clubs: [],
-      club: '',
+      clubs: [], // Now stores objects with { club, designation }
       designation: '',
       courseExpertise: '',
       topicCovered: '',
@@ -100,33 +99,9 @@ const Signup = () => {
     };
   });
 
-  const selectedProgram = programs.find((p) => p.name === formData.program);
-  const courses = selectedProgram?.courses || [];
-
   useEffect(() => {
     localStorage.setItem('role', formData.role);
   }, [formData.role]);
-
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [programRes, clubRes] = await Promise.all([
-          fetch('http://localhost:5000/api/metadata/programs'),
-          fetch('http://localhost:5000/api/metadata/clubs'),
-        ]);
-
-        const programsData = await programRes.json();
-        const clubsData = await clubRes.json();
-
-        setPrograms(programsData);
-        setAvailableClubs(clubsData);
-      } catch (err) {
-        console.error('Metadata fetch error:', err);
-      }
-    };
-
-    fetchMetadata();
-  }, []);
 
   const requiredFieldsByStep = {
     1: ['firstName'],
@@ -134,15 +109,15 @@ const Signup = () => {
     3: formData.role === 'Student' || formData.role === 'Mentor' ? ['bio'] : [],
     4:
       formData.role === 'Student' || formData.role === 'Mentor'
-        ? ['program', 'programType', 'faculty', 'enrolledCourses']
+        ? ['programName', 'programType', 'faculty']
         : formData.role === 'Alumni'
-        ? ['program', 'programType', 'faculty', 'alumniGradDate']
+        ? ['programName', 'programType', 'faculty', 'alumniGradDate']
         : [],
     5:
       formData.role === 'Student'
         ? ['gradDate']
         : formData.role === 'Mentor'
-        ? ['courseExpertise', 'course', 'topicCovered']
+        ? ['courseExpertise', 'courseName', 'topicCovered']
         : formData.role === 'Alumni'
         ? ['alumniProof']
         : [],
@@ -160,6 +135,7 @@ const Signup = () => {
     for (let field of fieldsToCheck) {
       if (!formData[field]) {
         alert(`${field.replace(/([A-Z])/g, ' $1').trim()} is required.`);
+        return false;
       }
     }
     if (step === 2) {
@@ -214,10 +190,6 @@ const Signup = () => {
         console.error('Registration error:', err);
         alert('Something went wrong. Try again.');
       }
-      return;
-    }
-    if (step === 4 && (!formData.enrolledCourses || formData.enrolledCourses.length === 0)) {
-      alert('Please select at least one course.');
       return;
     }
     if (
@@ -299,16 +271,16 @@ const Signup = () => {
 
   const handleCourseChange = (e) => {
     const selectedCode = e.target.value;
-
+    const selectedCourse = coursesData.find((course) => course.code === selectedCode);
     setFormData((prev) => ({
       ...prev,
       courseCode: selectedCode,
-      course: selectedCode, // Since name == code in your case
+      courseName: selectedCourse ? selectedCourse.name : '',
     }));
   };
 
   const addEnrolledCourse = () => {
-    const { courseCode, course, semester, year, instructor } = formData;
+    const { courseCode, courseName, semester, year, instructor } = formData;
     if (!courseCode || !semester || !year) {
       alert('Please fill required course details.');
       return;
@@ -320,8 +292,9 @@ const Signup = () => {
     }
     setFormData((prev) => ({
       ...prev,
-      enrolledCourses: [...prev.enrolledCourses, { course, semester, year, instructor }],
-      course: '',
+      enrolledCourses: [...prev.enrolledCourses, { courseCode, courseName, semester, year, instructor }],
+      courseCode: '',
+      courseName: '',
       semester: '',
       year: '',
       instructor: '',
@@ -385,7 +358,7 @@ const Signup = () => {
           email: formData.email,
           bio: formData.bio,
           programType: formData.programType,
-          program: formData.program,
+          program: formData.programName,
           coursesEnrolled: formData.enrolledCourses, // this should be an array
           expectedGradDate: formData.gradDate, // for students
           studentClubs: formData.clubs, // array of { club, designation }
@@ -401,7 +374,7 @@ const Signup = () => {
 
       alert('Profile completed successfully!');
       // Optionally store token if backend returns it:
-      // localStorage.setItem('token', result.token);
+      localStorage.setItem('token', result.token);
       navigate('/login');
     } catch (error) {
       console.error('Error completing profile:', error);
@@ -568,11 +541,11 @@ const Signup = () => {
                     </span>
                   </label>
                   <Tooltip id='programName-tooltip' content='Name of your academic program' />
-                  <select name='program' value={formData.program} onChange={handleChange} required>
+                  <select name='programName' value={formData.programName} onChange={handleChange} required>
                     <option value=''>Select Program</option>
-                    {programs.map((p) => (
-                      <option key={p._id} value={p.name}>
-                        {p.name}
+                    {programNamesData.map((program) => (
+                      <option key={program} value={program}>
+                        {program}
                       </option>
                     ))}
                   </select>
@@ -587,7 +560,7 @@ const Signup = () => {
                   <Tooltip id='programType-tooltip' content='Type of program (e.g., Undergraduate, Graduate)' />
                   <select name='programType' value={formData.programType} onChange={handleChange} required>
                     <option value=''>Select Program Type</option>
-                    {[...new Set(programs.map((p) => p.type))].map((type) => (
+                    {programTypesData.map((type) => (
                       <option key={type} value={type}>
                         {type}
                       </option>
@@ -604,7 +577,7 @@ const Signup = () => {
                   <Tooltip id='faculty-tooltip' content='Faculty of your program' />
                   <select name='faculty' value={formData.faculty} onChange={handleChange} required>
                     <option value=''>Select Faculty</option>
-                    {[...new Set(programs.map((p) => p.faculty))].map((faculty) => (
+                    {facultyData.map((faculty) => (
                       <option key={faculty} value={faculty}>
                         {faculty}
                       </option>
@@ -621,9 +594,9 @@ const Signup = () => {
                   <Tooltip id='courseCode-tooltip' content='Select a course you are enrolled in' />
                   <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
                     <option value=''>Select Course</option>
-                    {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
+                    {coursesData.map((course) => (
+                      <option key={course.code} value={course.code}>
+                        {course.code} - {course.name}
                       </option>
                     ))}
                   </select>
@@ -633,12 +606,12 @@ const Signup = () => {
                     <div className='input-group'>
                       <label>
                         Course Name*{' '}
-                        <span data-tooltip-id='course-tooltip' className='info-icon'>
+                        <span data-tooltip-id='courseName-tooltip' className='info-icon'>
                           i
                         </span>
                       </label>
-                      <Tooltip id='course-tooltip' content='Name of the course' />
-                      <input type='text' name='course' value={formData.course} readOnly />
+                      <Tooltip id='courseName-tooltip' content='Name of the course' />
+                      <input type='text' name='courseName' value={formData.courseName} readOnly />
                     </div>
                     <div className='input-group'>
                       <label>
@@ -693,7 +666,9 @@ const Signup = () => {
                     <h3>Added Courses:</h3>
                     {formData.enrolledCourses.map((course, index) => (
                       <div key={index} className='course-box'>
-                        <strong>{course.course}</strong>
+                        <strong>
+                          {course.courseCode} - {course.courseName}
+                        </strong>
                         <br />
                         Semester: {course.semester}, Year: {course.year}
                         <br />
@@ -724,8 +699,6 @@ const Signup = () => {
             {formData.role === 'Student' && step === 6 && (
               <div className='form-block'>
                 <h2>Step 6: Clubs</h2>
-
-                {/* Club Selection */}
                 <div className='input-group'>
                   <label>
                     Select Club{' '}
@@ -734,18 +707,15 @@ const Signup = () => {
                     </span>
                   </label>
                   <Tooltip id='club-tooltip' content='Select a club you are part of' />
-                  <select name='club' value={formData.club} onChange={handleChange} required>
+                  <select name='club' value={formData.club || ''} onChange={handleClubChange}>
                     <option value=''>Select Club</option>
-                    {console.log('INSDIE', availableClubs)}
-                    {availableClubs.map((club) => (
-                      <option key={club._id} value={club._id}>
+                    {clubsData.map((club) => (
+                      <option key={club} value={club}>
                         {club}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                {/* Designation Selection */}
                 {formData.club && (
                   <>
                     <div className='input-group'>
@@ -767,14 +737,12 @@ const Signup = () => {
                     </button>
                   </>
                 )}
-
-                {/* Club List Preview */}
                 {formData.clubs.length > 0 && (
                   <div className='club-list'>
                     <h3>Added Clubs:</h3>
-                    {formData.clubs.map((entry, index) => (
+                    {formData.clubs.map((clubEntry, index) => (
                       <div key={index} className='club-box'>
-                        <strong>{entry.club}</strong> - {entry.designation}
+                        <strong>{clubEntry.club}</strong> - {clubEntry.designation}
                       </div>
                     ))}
                   </div>
@@ -809,12 +777,11 @@ const Signup = () => {
                     </span>
                   </label>
                   <Tooltip id='courseNameMentor-tooltip' content='Name of the course you teach' />
-
-                  <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
+                  <select name='courseName' value={formData.courseName} onChange={handleChange} required>
                     <option value=''>Select Course</option>
-                    {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
+                    {coursesData.map((course) => (
+                      <option key={course.code} value={course.name}>
+                        {course.name}
                       </option>
                     ))}
                   </select>
@@ -932,11 +899,11 @@ const Signup = () => {
                     </span>
                   </label>
                   <Tooltip id='programNameAlumni-tooltip' content='Name of your academic program' />
-                  <select name='program' value={formData.program} onChange={handleChange} required>
+                  <select name='programName' value={formData.programName} onChange={handleChange} required>
                     <option value=''>Select Program</option>
-                    {programs.map((p) => (
-                      <option key={p._id} value={p.name}>
-                        {p.name}
+                    {programNamesData.map((program) => (
+                      <option key={program} value={program}>
+                        {program}
                       </option>
                     ))}
                   </select>
@@ -954,7 +921,7 @@ const Signup = () => {
                   />
                   <select name='programType' value={formData.programType} onChange={handleChange} required>
                     <option value=''>Select Program Type</option>
-                    {[...new Set(programs.map((p) => p.type))].map((type) => (
+                    {programTypesData.map((type) => (
                       <option key={type} value={type}>
                         {type}
                       </option>
@@ -971,7 +938,7 @@ const Signup = () => {
                   <Tooltip id='faculty-tooltip' content='Faculty of your program' />
                   <select name='faculty' value={formData.faculty} onChange={handleChange} required>
                     <option value=''>Select Faculty</option>
-                    {[...new Set(programs.map((p) => p.faculty))].map((faculty) => (
+                    {facultyData.map((faculty) => (
                       <option key={faculty} value={faculty}>
                         {faculty}
                       </option>
@@ -1051,12 +1018,10 @@ const Signup = () => {
           </motion.div>
         </AnimatePresence>
 
-        {step !== 2.5 && (
-          <div className='button-group'>
-            {step > 1 && <button onClick={handleBack}>Back</button>}
-            <button onClick={handleNext}>Next</button>
-          </div>
-        )}
+        <div className='button-group'>
+          {step > 1 && <button onClick={handleBack}>Back</button>}
+          <button onClick={handleNext}>Next</button>
+        </div>
         <p className='login-text'>
           Already have an account?{' '}
           <a href='/login' className='login-link'>
