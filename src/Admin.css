@@ -1,0 +1,168 @@
+/* Purple Theme for Admin Components */
+
+/* Background and containers */
+.theme-bg-background {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 25%, #ddd6fe 50%, #f3e8ff 75%, #faf5ff 100%) !important;
+}
+
+.theme-bg-dropdown {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1) !important;
+}
+
+.theme-bg-dropdown-hover:hover {
+  background: rgba(139, 92, 246, 0.05) !important;
+}
+
+.theme-bg-navbar {
+  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%) !important;
+  box-shadow: 4px 0 20px rgba(139, 92, 246, 0.3) !important;
+}
+
+.theme-bg-footer {
+  background: rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Text colors */
+.theme-text-header {
+  color: #1f2937 !important;
+}
+
+.theme-text-subtitle {
+  color: #6b7280 !important;
+}
+
+/* Primary colors */
+.theme-bg-primary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+}
+
+.theme-text-primary {
+  color: #8b5cf6 !important;
+}
+
+.theme-bg-report-red {
+  background: #ef4444 !important;
+}
+
+/* Card and component styling */
+.theme-bg-dropdown {
+  transition: all 0.3s ease !important;
+}
+
+.theme-bg-dropdown:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Buttons */
+button {
+  transition: all 0.3s ease !important;
+}
+
+button:hover {
+  transform: translateY(-1px) !important;
+}
+
+/* Tables */
+table {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+th {
+  background: rgba(139, 92, 246, 0.1) !important;
+  color: #6b7280 !important;
+  font-weight: 600 !important;
+}
+
+tr:hover {
+  background: rgba(139, 92, 246, 0.05) !important;
+}
+
+/* Badge styling */
+.bg-blue-100 {
+  background: rgba(139, 92, 246, 0.1) !important;
+  color: #8b5cf6 !important;
+}
+
+.bg-purple-100 {
+  background: rgba(236, 72, 153, 0.1) !important;
+  color: #ec4899 !important;
+}
+
+.bg-orange-100 {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #f59e0b !important;
+}
+
+.bg-green-100 {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #10b981 !important;
+}
+
+.bg-red-100 {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+}
+
+.bg-yellow-100 {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: #f59e0b !important;
+}
+
+/* Chart container styling */
+.recharts-wrapper {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+/* Input and form styling */
+input, textarea, select {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 8px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+  outline: none !important;
+}
+
+/* Statistics cards */
+.text-3xl {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Action buttons */
+.bg-green-600 {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+}
+
+.bg-green-600:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+/* Modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  border-radius: 10px;
+}
