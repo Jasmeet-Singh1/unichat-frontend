@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +59,7 @@ const Signup = () => {
   const passwordRegex = /^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[!@#$%^&])[A-Za-z\d!@#$%^&]{8,}$/;
   const [step, setStep] = useState(1);
   const [programs, setPrograms] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [availableClubs, setAvailableClubs] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -100,9 +101,6 @@ const Signup = () => {
     };
   });
 
-  const selectedProgram = programs.find((p) => p.name === formData.program);
-  const courses = selectedProgram?.courses || [];
-
   useEffect(() => {
     localStorage.setItem('role', formData.role);
   }, [formData.role]);
@@ -111,12 +109,13 @@ const Signup = () => {
     const fetchMetadata = async () => {
       try {
         const [programRes, clubRes] = await Promise.all([
-          fetch('http://localhost:5000/api/metadata/programs'),
-          fetch('http://localhost:5000/api/metadata/clubs'),
+          fetch('http://localhost:5000/api/programs'),
+          fetch('http://localhost:5000/api/getClubs'),
         ]);
 
         const programsData = await programRes.json();
         const clubsData = await clubRes.json();
+        console.log('clubsData', clubsData);
 
         setPrograms(programsData);
         setAvailableClubs(clubsData);
@@ -276,16 +275,63 @@ const Signup = () => {
     setStep((prev) => prev - 1);
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value, type, files, multiple } = e.target;
+
     if (multiple && type === 'select-multiple') {
       const options = [...e.target.selectedOptions].map((o) => o.value);
       setFormData((prev) => ({ ...prev, [name]: options }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: type === 'file' ? files[0] : value,
-      }));
+      if (name === 'program') {
+        // Always set the selected program name
+        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        const selectedProgram = programs.find((p) => p.name === value);
+        console.log('selectedProgram', selectedProgram);
+        if (selectedProgram) {
+          try {
+            // Fetch program details
+            const res = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}`);
+            if (!res.ok) throw new Error('Program fetch failed');
+            const details = await res.json();
+            console.log(details);
+
+            // Fetch courses
+            const coursesRes = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}/courses`);
+            const coursesData = await coursesRes.json();
+
+            setFormData((prev) => ({
+              ...prev,
+              program: value,
+              programType: details.type || '',
+              faculty: details.faculty || '',
+            }));
+
+            setCourses(coursesData); // ✅ update dropdown options
+          } catch (err) {
+            console.error('Program detail fetch error:', err);
+            // Optional: clear fields or show error
+            setFormData((prev) => ({
+              ...prev,
+              programType: '',
+              faculty: '',
+            }));
+            setCourses([]); // fallback
+          }
+        } else {
+          // Optional fallback if not found in list
+          setFormData((prev) => ({
+            ...prev,
+            programType: '',
+            faculty: '',
+          }));
+        }
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: type === 'file' ? files[0] : value,
+        }));
+      }
     }
   };
 
@@ -429,6 +475,7 @@ const AvailabilityComponent = () => {
   };
 }
 
+  console.log('data', programs);
   return (
     
     <div className='signup'>
@@ -472,114 +519,95 @@ const AvailabilityComponent = () => {
               </div>
             )}
 
-{step === 2 && (
-  <>
-    <div className='form-block'>
-      <h2>Step 2: Role & Account</h2>
+            {step === 2 && (
+              <div className='form-block'>
+                <h2>Step 2: Role & Account</h2>
+                <div className='input-group'>
+                  <label>
+                    Role*{' '}
+                    <span data-tooltip-id='role-tooltip' className='info-icon'>
+                      i
+                    </span>
+                  </label>
+                  <Tooltip id='role-tooltip' content='Select your role in the system' />
+                  <select name='role' value={formData.role} onChange={handleChange} required>
+                    <option value=''>Select Role</option>
+                    <option value='Student'>Student</option>
+                    <option value='Mentor'>Mentor</option>
+                    <option value='Alumni'>Alumni</option>
+                  </select>
+                </div>
+                <div className='input-group'>
+                  <label>
+                    Username{' '}
+                    <span data-tooltip-id='username-tooltip' className='info-icon'>
+                      i
+                    </span>
+                  </label>
+                  <Tooltip id='username-tooltip' content='Optional unique identifier' />
+                  <input type='text' name='username' value={formData.username} onChange={handleChange} />
+                </div>
+                <div className='input-group'>
+                  <label>
+                    Email*{' '}
+                    <span data-tooltip-id='email-tooltip' className='info-icon'>
+                      i
+                    </span>
+                  </label>
+                  <Tooltip id='email-tooltip' content='Your email address for login' />
+                  <input type='email' name='email' value={formData.email} onChange={handleChange} required />
+                </div>
+                <div className='input-group password-wrapper'>
+                  <label>
+                    Password* (Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special
+                    character (!@#$%^&*), and be more than 7 characters)
+                    <span data-tooltip-id='password-tooltip' className='info-icon'>
+                      i
+                    </span>
+                  </label>
+                  <Tooltip
+                    id='password-tooltip'
+                    content='Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters'
+                  />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name='password'
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span onClick={togglePassword}>{showPassword ? <FaEyeSlash /> : <FaEye />}</span>
+                </div>
+                <div className='input-group password-wrapper'>
+                  <label>
+                    Confirm Password*{' '}
+                    <span data-tooltip-id='confirmPassword-tooltip' className='info-icon'>
+                      i
+                    </span>
+                  </label>
+                  <Tooltip id='confirmPassword-tooltip' content='Must match the password' />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name='confirmPassword'
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span onClick={toggleConfirmPassword}>{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</span>
+                </div>
+              </div>
+            )}
 
-      <div className='input-group'>
-        <label>
-          Role*{' '}
-          <span data-tooltip-id='role-tooltip' className='info-icon'>
-            i
-          </span>
-        </label>
-        <Tooltip id='role-tooltip' content='Select your role in the system' />
-        <select name='role' value={formData.role} onChange={handleChange} required>
-          <option value=''>Select Role</option>
-          <option value='Student'>Student</option>
-          <option value='Mentor'>Mentor</option>
-          <option value='Alumni'>Alumni</option>
-        </select>
-      </div>
-
-      <div className='input-group'>
-        <label>
-          Username{' '}
-          <span data-tooltip-id='username-tooltip' className='info-icon'>
-            i
-          </span>
-        </label>
-        <Tooltip id='username-tooltip' content='Optional unique identifier' />
-        <input type='text' name='username' value={formData.username} onChange={handleChange} />
-      </div>
-
-      <div className='input-group'>
-        <label>
-          Email*{' '}
-          <span data-tooltip-id='email-tooltip' className='info-icon'>
-            i
-          </span>
-        </label>
-        <Tooltip id='email-tooltip' content='Your email address for login' />
-        <input type='email' name='email' value={formData.email} onChange={handleChange} required />
-      </div>
-
-      <div className='input-group password-wrapper'>
-        <label>
-          Password* (Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters)
-          <span data-tooltip-id='password-tooltip' className='info-icon'>
-            i
-          </span>
-        </label>
-        <Tooltip
-          id='password-tooltip'
-          content='Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters'
-        />
-        <input
-          type={showPassword ? 'text' : 'password'}
-          name='password'
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-        <span onClick={togglePassword} className="eye-icon">
-          {showPassword ? <FaEyeSlash /> : <FaEye />}
-        </span>
-      </div>
-
-      <div className="input-group password-wrapper">
-        <label>
-          Confirm Password*{' '}
-          <span data-tooltip-id="confirmPassword-tooltip" className="info-icon">
-            i
-          </span>
-        </label>
-        <Tooltip id="confirmPassword-tooltip" content="Must match the password" />
-        <div className="input-with-icon">
-          <input
-            type={showConfirmPassword ? "text" : "password"}
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
-          <span onClick={toggleConfirmPassword} className="eye-icon">
-            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-          </span>
-        </div>
-      </div>
-    </div>
-  </>
-)}
-
-
-{step === 2.5 && (
-  <div className='form-block'>
-    <h2>Step 2.5: Verify Email</h2>
-    <div className='input-group'>
-      <label>Enter OTP sent to your email</label>
-      <input type='text' name='otp' value={formData.otp || ''} onChange={handleChange} required />
-    </div>
-  </div>
-)}
-
-{step !== 2.5 && (
-  <div className='button-group'>
-    {step > 1 && <button onClick={handleBack}>Back</button>}
-    <button onClick={handleNext}>Next</button>
-  </div>
-)}
+            {step === 2.5 && (
+              <div className='form-block'>
+                <h2>Step 2.5: Verify Email</h2>
+                <div className='input-group'>
+                  <label>Enter OTP sent to your email</label>
+                  <input type='text' name='otp' value={formData.otp || ''} onChange={handleChange} required />
+                </div>
+                <button onClick={verifyOtp}>Verify OTP</button>
+              </div>
+            )}
 
             {step === 3 && (formData.role === 'Student' || formData.role === 'Mentor') && (
               <div className='form-block'>
@@ -596,7 +624,6 @@ const AvailabilityComponent = () => {
                 </div>
               </div>
             )}
-
             {(formData.role === 'Student' || formData.role === 'Mentor') && step === 4 && (
               <div className='form-block'>
                 <h2>Step 4: Academic Info</h2>
@@ -617,6 +644,7 @@ const AvailabilityComponent = () => {
                     ))}
                   </select>
                 </div>
+
                 <div className='input-group'>
                   <label>
                     Program Type*{' '}
@@ -624,16 +652,10 @@ const AvailabilityComponent = () => {
                       i
                     </span>
                   </label>
-                  <Tooltip id='programType-tooltip' content='Type of program (e.g., Undergraduate, Graduate)' />
-                  <select name='programType' value={formData.programType} onChange={handleChange} required>
-                    <option value=''>Select Program Type</option>
-                    {[...new Set(programs.map((p) => p.type))].map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
+                  <Tooltip id='programType-tooltip' content='Auto-filled based on program' />
+                  <input type='text' name='programType' value={formData.programType || ''} readOnly required />
                 </div>
+
                 <div className='input-group'>
                   <label>
                     Faculty*{' '}
@@ -641,16 +663,10 @@ const AvailabilityComponent = () => {
                       i
                     </span>
                   </label>
-                  <Tooltip id='faculty-tooltip' content='Faculty of your program' />
-                  <select name='faculty' value={formData.faculty} onChange={handleChange} required>
-                    <option value=''>Select Faculty</option>
-                    {[...new Set(programs.map((p) => p.faculty))].map((faculty) => (
-                      <option key={faculty} value={faculty}>
-                        {faculty}
-                      </option>
-                    ))}
-                  </select>
+                  <Tooltip id='faculty-tooltip' content='Auto-filled based on program' />
+                  <input type='text' name='faculty' value={formData.faculty || ''} readOnly required />
                 </div>
+
                 <div className='input-group'>
                   <label>
                     Select Course*{' '}
@@ -662,8 +678,8 @@ const AvailabilityComponent = () => {
                   <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
                     <option value=''>Select Course</option>
                     {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
+                      <option key={course._id} value={course._id}>
+                        {course.name}
                       </option>
                     ))}
                   </select>
@@ -672,12 +688,12 @@ const AvailabilityComponent = () => {
                   <>
                     <div className='input-group'>
                       <label>
-                        Course Name*{' '}
+                        Course Code*{' '}
                         <span data-tooltip-id='course-tooltip' className='info-icon'>
                           i
                         </span>
                       </label>
-                      <Tooltip id='course-tooltip' content='Name of the course' />
+                      <Tooltip id='course-tooltip' content='Code of course' />
                       <input type='text' name='course' value={formData.course} readOnly />
                     </div>
                     <div className='input-group'>
@@ -744,7 +760,6 @@ const AvailabilityComponent = () => {
                 )}
               </div>
             )}
-
             {formData.role === 'Student' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Graduation Date</h2>
@@ -760,7 +775,6 @@ const AvailabilityComponent = () => {
                 </div>
               </div>
             )}
-
             {formData.role === 'Student' && step === 6 && (
               <div className='form-block'>
                 <h2>Step 6: Clubs</h2>
@@ -776,10 +790,9 @@ const AvailabilityComponent = () => {
                   <Tooltip id='club-tooltip' content='Select a club you are part of' />
                   <select name='club' value={formData.club} onChange={handleChange} required>
                     <option value=''>Select Club</option>
-                    {console.log('INSDIE', availableClubs)}
                     {availableClubs.map((club) => (
                       <option key={club._id} value={club._id}>
-                        {club}
+                        {club._id}
                       </option>
                     ))}
                   </select>
@@ -821,7 +834,7 @@ const AvailabilityComponent = () => {
                 )}
               </div>
             )}
-
+            // Mentors
             {formData.role === 'Mentor' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
@@ -972,7 +985,6 @@ const AvailabilityComponent = () => {
                 </div>
               </div>
             )}
-
             {formData.role === 'Alumni' && step === 3 && (
               <div className='form-block'>
                 <h2>Step 3: Graduation Info</h2>
@@ -1048,7 +1060,6 @@ const AvailabilityComponent = () => {
                 </div>
               </div>
             )}
-
             {formData.role === 'Alumni' && step === 4 && (
               <div className='form-block'>
                 <h2>Step 4: Current Job (optional)</h2>
@@ -1084,7 +1095,6 @@ const AvailabilityComponent = () => {
                 </div>
               </div>
             )}
-
             {formData.role === 'Alumni' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Upload Proof of Former Student</h2>
