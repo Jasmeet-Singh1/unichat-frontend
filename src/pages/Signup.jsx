@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,7 +56,7 @@ import './Signup.css';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+  const passwordRegex = /^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[!@#$%^&])[A-Za-z\d!@#$%^&]{8,}$/;
   const [step, setStep] = useState(1);
   const [programs, setPrograms] = useState([]);
   const [availableClubs, setAvailableClubs] = useState([]);
@@ -427,8 +427,10 @@ const AvailabilityComponent = () => {
       alert('Something went wrong while submitting your profile.');
     }
   };
+}
 
   return (
+    
     <div className='signup'>
       <div className='gradient-boxes'>
         {Array.from({ length: 80 }).map((_, i) => (
@@ -471,6 +473,7 @@ const AvailabilityComponent = () => {
             )}
 
             {step === 2 && (
+              <div>
               <div className='form-block'>
                 <h2>Step 2: Role & Account</h2>
                 <div className='input-group'>
@@ -560,6 +563,7 @@ const AvailabilityComponent = () => {
                   </div>
                 </div>
               </div>
+            )}
             {step === 2.5 && (
               <div className='form-block'>
                 <h2>Step 2.5: Verify Email</h2>
@@ -889,7 +893,8 @@ const AvailabilityComponent = () => {
   <Tooltip id='instructorMentor-tooltip' content='Name of the instructor (optional)' />
   <input type='text' name='instructor' value={formData.instructor} onChange={handleChange} />
 </div>
-
+</div>
+            )}
             {formData.role === 'Mentor' && step === 6 && (
               <div className='form-block'> 
       <h2>Step 6: Availability</h2>
@@ -949,6 +954,7 @@ const AvailabilityComponent = () => {
         ))}
       </ul>
     </div>
+            )}
             {formData.role === 'Mentor' && step === 7 && (
               <div className='form-block'>
                 <h2>Step 7: Upload Proof</h2>
