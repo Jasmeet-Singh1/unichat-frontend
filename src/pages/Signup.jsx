@@ -472,113 +472,115 @@ const AvailabilityComponent = () => {
               </div>
             )}
 
-            {step === 2 && (
-              <div>
-              <div className='form-block'>
-                <h2>Step 2: Role & Account</h2>
-                <div className='input-group'>
-                  <label>
-                    Role*{' '}
-                    <span data-tooltip-id='role-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='role-tooltip' content='Select your role in the system' />
-                  <select name='role' value={formData.role} onChange={handleChange} required>
-                    <option value=''>Select Role</option>
-                    <option value='Student'>Student</option>
-                    <option value='Mentor'>Mentor</option>
-                    <option value='Alumni'>Alumni</option>
-                  </select>
-                </div>
-                <div className='input-group'>
-                  <label>
-                    Username{' '}
-                    <span data-tooltip-id='username-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='username-tooltip' content='Optional unique identifier' />
-                  <input type='text' name='username' value={formData.username} onChange={handleChange} />
-                </div>
-                <div className='input-group'>
-                  <label>
-                    Email*{' '}
-                    <span data-tooltip-id='email-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='email-tooltip' content='Your email address for login' />
-                  <input type='email' name='email' value={formData.email} onChange={handleChange} required />
-                </div>
-                <div className='input-group password-wrapper'>
-                  <label>
-                    Password* (Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special
-                    character (!@#$%^&*), and be more than 7 characters)
-                    <span data-tooltip-id='password-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip
-                    id='password-tooltip'
-                    content='Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters'
-                  />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name='password'
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                  />
-                         <span onClick={togglePassword} className="eye-icon">
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </span>
-                  </div>
-                </div>
-                <div className="input-group password-wrapper">
-                  <label>
-                    Confirm Password*{" "}
-                    <span
-                      data-tooltip-id="confirmPassword-tooltip"
-                      className="info-icon"
-                    >
-                      i
-                    </span>
-                  </label>
-                  <Tooltip
-                    id="confirmPassword-tooltip"
-                    content="Must match the password"
-                  />
-                  <div className="input-with-icon">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      required
-                    />
-                    <span onClick={toggleConfirmPassword} className="eye-icon">
-                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-            {step === 2.5 && (
-              <div className='form-block'>
-                <h2>Step 2.5: Verify Email</h2>
-                <div className='input-group'>
-                  <label>Enter OTP sent to your email</label>
-                  <input type='text' name='otp' value={formData.otp || ''} onChange={handleChange} required />
-                </div>
-              </div>
-            )}
-         {step !== 2.5 && (
-          <div className='button-group'>
-            {step > 1 && <button onClick={handleBack}>Back</button>}
-            <button onClick={handleNext}>Next</button>
-          </div>
-        )}
+{step === 2 && (
+  <>
+    <div className='form-block'>
+      <h2>Step 2: Role & Account</h2>
+
+      <div className='input-group'>
+        <label>
+          Role*{' '}
+          <span data-tooltip-id='role-tooltip' className='info-icon'>
+            i
+          </span>
+        </label>
+        <Tooltip id='role-tooltip' content='Select your role in the system' />
+        <select name='role' value={formData.role} onChange={handleChange} required>
+          <option value=''>Select Role</option>
+          <option value='Student'>Student</option>
+          <option value='Mentor'>Mentor</option>
+          <option value='Alumni'>Alumni</option>
+        </select>
+      </div>
+
+      <div className='input-group'>
+        <label>
+          Username{' '}
+          <span data-tooltip-id='username-tooltip' className='info-icon'>
+            i
+          </span>
+        </label>
+        <Tooltip id='username-tooltip' content='Optional unique identifier' />
+        <input type='text' name='username' value={formData.username} onChange={handleChange} />
+      </div>
+
+      <div className='input-group'>
+        <label>
+          Email*{' '}
+          <span data-tooltip-id='email-tooltip' className='info-icon'>
+            i
+          </span>
+        </label>
+        <Tooltip id='email-tooltip' content='Your email address for login' />
+        <input type='email' name='email' value={formData.email} onChange={handleChange} required />
+      </div>
+
+      <div className='input-group password-wrapper'>
+        <label>
+          Password* (Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters)
+          <span data-tooltip-id='password-tooltip' className='info-icon'>
+            i
+          </span>
+        </label>
+        <Tooltip
+          id='password-tooltip'
+          content='Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters'
+        />
+        <input
+          type={showPassword ? 'text' : 'password'}
+          name='password'
+          value={formData.password}
+          onChange={handleChange}
+          required
+        />
+        <span onClick={togglePassword} className="eye-icon">
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </span>
+      </div>
+
+      <div className="input-group password-wrapper">
+        <label>
+          Confirm Password*{' '}
+          <span data-tooltip-id="confirmPassword-tooltip" className="info-icon">
+            i
+          </span>
+        </label>
+        <Tooltip id="confirmPassword-tooltip" content="Must match the password" />
+        <div className="input-with-icon">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+          />
+          <span onClick={toggleConfirmPassword} className="eye-icon">
+            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+          </span>
+        </div>
+      </div>
+    </div>
+  </>
+)}
+
+
+{step === 2.5 && (
+  <div className='form-block'>
+    <h2>Step 2.5: Verify Email</h2>
+    <div className='input-group'>
+      <label>Enter OTP sent to your email</label>
+      <input type='text' name='otp' value={formData.otp || ''} onChange={handleChange} required />
+    </div>
+  </div>
+)}
+
+{step !== 2.5 && (
+  <div className='button-group'>
+    {step > 1 && <button onClick={handleBack}>Back</button>}
+    <button onClick={handleNext}>Next</button>
+  </div>
+)}
+
             {step === 3 && (formData.role === 'Student' || formData.role === 'Mentor') && (
               <div className='form-block'>
                 <h2>Step 3: Bio</h2>
