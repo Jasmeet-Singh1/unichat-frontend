@@ -118,6 +118,7 @@ const Signup = () => {
     for (let field of fieldsToCheck) {
       if (!formData[field]) {
         alert(`${field.replace(/([A-Z])/g, ' $1').trim()} is required.`);
+        return false;
       }
     }
     if (step === 2) {
@@ -559,12 +560,7 @@ const Signup = () => {
                 <button onClick={verifyOtp}>Verify OTP</button>
               </div>
             )}
-            {step !== 2.5 && (
-              <div className='button-group'>
-                {step > 1 && <button onClick={handleBack}>Back</button>}
-                <button onClick={handleNext}>Next</button>
-              </div>
-            )}
+
             {step === 3 && (formData.role === 'Student' || formData.role === 'Mentor') && (
               <div className='form-block'>
                 <h2>Step 3: Bio</h2>
@@ -1054,6 +1050,12 @@ const Signup = () => {
                   <Tooltip id='alumniProof-tooltip' content='Upload proof of your alumni status (PDF, JPG, PNG)' />
                   <input type='file' name='alumniProof' accept='.pdf,.jpg,.png' onChange={handleChange} required />
                 </div>
+              </div>
+            )}
+            {step !== 2.5 && (
+              <div className='button-group'>
+                {step > 1 && <button onClick={handleBack}>Back</button>}
+                <button onClick={handleNext}>Next</button>
               </div>
             )}
           </motion.div>
