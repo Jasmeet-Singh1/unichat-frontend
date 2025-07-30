@@ -13,6 +13,7 @@ import Settings from './admin/pages/Settings';
 
 // Chat Components
 import Chat from './components/chat/Chat';
+//import { useUser } from './components/chat/UserContext';
 
 // Import the purple theme CSS
 import './Admin.css';
@@ -21,6 +22,7 @@ import './index.css';
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
 
   useEffect(() => {
     const checkAuth = () => {
