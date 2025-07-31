@@ -44,7 +44,14 @@ const Signup = () => {
       clubs: [],
       club: '',
       designation: '',
-      courseExpertise: '',
+      courseExpertise: [
+        {
+          course: '',
+          topicsCovered: '',
+          grade: '',
+          instructor: '',
+        },
+      ],
       topicCovered: '',
       availabilityDays: [],
       availabilityFrom: '',
@@ -334,6 +341,18 @@ const Signup = () => {
     }));
   };
 
+  const addExpertise = () => {
+    setFormData((prev) => ({
+      ...prev,
+      courseExpertise: [...prev.courseExpertise, { course: '', topicsCovered: '', grade: '', instructor: '' }],
+    }));
+  };
+
+  const removeExpertise = (index) => {
+    const updated = formData.courseExpertise.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
+  };
+
   const handleClubChange = (e) => {
     const selectedClub = e.target.value;
     setFormData((prev) => ({
@@ -399,35 +418,71 @@ const Signup = () => {
 
   const submitProfile = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          bio: formData.bio,
-          programType: formData.programType,
-          program: formData.program,
-          coursesEnrolled: formData.enrolledCourses, // this should be an array
-          expectedGradDate: formData.gradDate, // for students
-          studentClubs: formData.clubs, // array of { club, designation }
-        }),
-      });
+      if (formData.role === 'Student') {
+        const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            bio: formData.bio,
+            programType: formData.programType,
+            program: formData.program,
+            coursesEnrolled: formData.enrolledCourses, // this should be an array
+            expectedGradDate: formData.gradDate, // for students
+            studentClubs: formData.clubs, // array of { club, designation }
+          }),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        alert(result.message || 'Profile completion failed');
-        return;
+        if (!response.ok) {
+          alert(result.message || 'Profile completion failed');
+          return;
+        }
+
+        alert('Profile completed successfully!');
+        // Optionally store token if backend returns it:
+        // localStorage.setItem('token', result.token);
+        navigate('/login');
       }
+      // else if (formData.role === 'Mentor') {
+      //   const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       email: formData.email,
+      //       bio: formData.bio,
+      //       programType: formData.programType,
+      //       program: formData.program,
+      //       coursesEnrolled: formData.enrolledCourses, // this should be an array
+      //       expectedGradDate: formData.gradDate, // for mentor
+      //       courseExpertise: formData.courseExpertise,
+      //       availability: formData.
+      //     }),
+      //   });
 
-      alert('Profile completed successfully!');
-      // Optionally store token if backend returns it:
-      // localStorage.setItem('token', result.token);
-      navigate('/login');
+      //   const result = await response.json();
+
+      //   if (!response.ok) {
+      //     alert(result.message || 'Profile completion failed');
+      //     return;
+      //   }
+
+      //   alert('Profile completed successfully!');
+      //   // Optionally store token if backend returns it:
+      //   // localStorage.setItem('token', result.token);
+      //   navigate('/login');
+      // }
     } catch (error) {
       console.error('Error completing profile:', error);
       alert('Something went wrong while submitting your profile.');
     }
+  };
+
+  const handleCourseExpertiseChange = (index, field, value) => {
+    const updated = [...formData.courseExpertise];
+    updated[index][field] = value;
+    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
   };
 
   console.log('data', programs);
@@ -630,9 +685,7 @@ const Signup = () => {
                   <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
                     <option value=''>Select Course</option>
                     {courses.map((course) => (
-                      <option key={course._id} value={course._id}>
-                        {course.name}
-                      </option>
+                      <option value={course._id}>{course.name}</option>
                     ))}
                   </select>
                 </div>
@@ -791,75 +844,72 @@ const Signup = () => {
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
 
-                {/* Course Expertise Heading */}
-                <h3>Course Expertise</h3>
+                {formData.courseExpertise.map((expertise, index) => (
+                  <div key={index} className='expertise-block'>
+                    {/* Course Name */}
+                    <div className='input-group'>
+                      <label>Course*</label>
+                      <select
+                        name='course'
+                        value={expertise.course}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'course', e.target.value)}
+                        required
+                      >
+                        <option value=''>Select Course</option>
+                        {courses.map((course) => (
+                          <option key={course._id} value={course._id}>
+                            {course.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                {/* Course Name */}
-                <div className='input-group'>
-                  <label>
-                    Course Name*{' '}
-                    <span data-tooltip-id='courseNameMentor-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='courseNameMentor-tooltip' content='Name of the course you teach' />
-                  <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
-                    <option value=''>Select Course</option>
-                    {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {/* Topics Covered */}
+                    <div className='input-group'>
+                      <label>Topics Covered*</label>
+                      <input
+                        type='text'
+                        value={expertise.topicsCovered}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'topicsCovered', e.target.value)}
+                        required
+                      />
+                    </div>
 
-                {/* Topics Covered */}
-                <div className='input-group'>
-                  <label>
-                    Topics Covered*{' '}
-                    <span data-tooltip-id='topicCovered-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='topicCovered-tooltip' content='Topics you cover in your course' />
-                  <input
-                    type='text'
-                    name='topicCovered'
-                    value={formData.topicCovered}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
+                    {/* Grade */}
+                    <div className='input-group'>
+                      <label>Grade*</label>
+                      <select
+                        value={expertise.grade}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'grade', e.target.value)}
+                        required
+                      >
+                        <option value=''>Select Grade</option>
+                        <option value='A+'>A+</option>
+                        <option value='A'>A</option>
+                        <option value='A-'>A-</option>
+                        <option value='B+'>B+</option>
+                      </select>
+                    </div>
 
-                {/* Grade (Optional) */}
-                <div className='input-group'>
-                  <label>
-                    Grade{' '}
-                    <span data-tooltip-id='grade-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='grade-tooltip' content='Optional grade for the course' />
-                  <select name='grade' value={formData.grade} onChange={handleChange}>
-                    <option value=''>Select Grade (Optional)</option>
-                    <option value='A+'>A+</option>
-                    <option value='A'>A</option>
-                    <option value='A-'>A-</option>
-                    <option value='B+'>B+</option>
-                  </select>
-                </div>
+                    {/* Instructor */}
+                    <div className='input-group'>
+                      <label>Instructor</label>
+                      <input
+                        type='text'
+                        value={expertise.instructor}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'instructor', e.target.value)}
+                      />
+                    </div>
 
-                {/* Instructor */}
-                <div className='input-group'>
-                  <label>
-                    Instructor{' '}
-                    <span data-tooltip-id='instructorMentor-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='instructorMentor-tooltip' content='Name of the instructor (optional)' />
-                  <input type='text' name='instructor' value={formData.instructor} onChange={handleChange} />
-                </div>
+                    <button type='button' onClick={() => removeExpertise(index)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+
+                <button type='button' onClick={addExpertise}>
+                  Add More
+                </button>
               </div>
             )}
             {formData.role === 'Mentor' && step === 6 && (
