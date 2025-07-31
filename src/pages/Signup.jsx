@@ -21,7 +21,12 @@ const Signup = () => {
   const [selectedDay, setSelectedDay] = useState('');
   const [fromTime, setFromTime] = useState('');
   const [toTime, setToTime] = useState('');
-
+  const [currentExpertise, setCurrentExpertise] = useState({
+    course: '',
+    topicsCovered: '',
+    grade: '',
+    instructor: '',
+  });
   const [formData, setFormData] = useState(() => {
     const savedRole = localStorage.getItem('role') || '';
     return {
@@ -44,14 +49,7 @@ const Signup = () => {
       clubs: [],
       club: '',
       designation: '',
-      courseExpertise: [
-        {
-          course: '',
-          topicsCovered: '',
-          grade: '',
-          instructor: '',
-        },
-      ],
+      courseExpertise: [],
       topicCovered: '',
       availabilityDays: [],
       availabilityFrom: '',
@@ -64,6 +62,8 @@ const Signup = () => {
       jobStart: '',
       alumniGradDate: '',
       enrolledCourses: [],
+      overallGPA: '',
+      showGPA: Boolean,
     };
   });
 
@@ -81,7 +81,6 @@ const Signup = () => {
 
         const programsData = await programRes.json();
         const clubsData = await clubRes.json();
-        console.log('clubsData', clubsData);
 
         setPrograms(programsData);
         setAvailableClubs(clubsData);
@@ -107,7 +106,7 @@ const Signup = () => {
       formData.role === 'Student'
         ? ['gradDate']
         : formData.role === 'Mentor'
-        ? ['courseExpertise', 'course', 'topicCovered']
+        ? ['courseExpertise']
         : formData.role === 'Alumni'
         ? ['alumniProof']
         : [],
@@ -221,7 +220,7 @@ const Signup = () => {
       return;
     }
 
-    if (formData.role === 'Mentor' && step >= 7) {
+    if (formData.role === 'Mentor' && step >= 8) {
       alert('Mentor request submitted. You will be notified after approval.');
       await submitProfile();
       navigate('/login');
@@ -254,14 +253,13 @@ const Signup = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
 
         const selectedProgram = programs.find((p) => p.name === value);
-        console.log('selectedProgram', selectedProgram);
+
         if (selectedProgram) {
           try {
             // Fetch program details
             const res = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}`);
             if (!res.ok) throw new Error('Program fetch failed');
             const details = await res.json();
-            console.log(details);
 
             // Fetch courses
             const coursesRes = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}/courses`);
@@ -341,16 +339,31 @@ const Signup = () => {
     }));
   };
 
-  const addExpertise = () => {
-    setFormData((prev) => ({
+  const handleCurrentExpertiseChange = (field, value) => {
+    setCurrentExpertise((prev) => ({
       ...prev,
-      courseExpertise: [...prev.courseExpertise, { course: '', topicsCovered: '', grade: '', instructor: '' }],
+      [field]: value,
     }));
   };
 
-  const removeExpertise = (index) => {
-    const updated = formData.courseExpertise.filter((_, i) => i !== index);
-    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
+  const addExpertise = () => {
+    if (!currentExpertise.course || !currentExpertise.topicsCovered || !currentExpertise.grade) {
+      alert('Please fill all required fields.');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      courseExpertise: [...prev.courseExpertise, currentExpertise],
+    }));
+
+    // Reset fields
+    setCurrentExpertise({
+      course: '',
+      topicsCovered: '',
+      grade: '',
+      instructor: '',
+    });
   };
 
   const handleClubChange = (e) => {
@@ -444,35 +457,37 @@ const Signup = () => {
         // Optionally store token if backend returns it:
         // localStorage.setItem('token', result.token);
         navigate('/login');
+      } else if (formData.role === 'Mentor') {
+        const response = await fetch('http://localhost:5000/api/auth/complete-mentor-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            bio: formData.bio,
+            programType: formData.programType,
+            program: formData.program,
+            coursesEnrolled: formData.enrolledCourses, // this should be an array
+            expectedGradDate: formData.gradDate, // for mentor
+            courseExpertise: formData.courseExpertise,
+            availability: availabilityList,
+            proof: formData.mentorProof,
+            overallGPA: formData.overallGPA,
+            showGPA: formData.showGPA,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          alert(result.message || 'Profile completion failed');
+          return;
+        }
+
+        alert('Profile completed successfully!');
+        // Optionally store token if backend returns it:
+        // localStorage.setItem('token', result.token);
+        navigate('/login');
       }
-      // else if (formData.role === 'Mentor') {
-      //   const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
-      //     method: 'POST',
-      //     headers: { 'Content-Type': 'application/json' },
-      //     body: JSON.stringify({
-      //       email: formData.email,
-      //       bio: formData.bio,
-      //       programType: formData.programType,
-      //       program: formData.program,
-      //       coursesEnrolled: formData.enrolledCourses, // this should be an array
-      //       expectedGradDate: formData.gradDate, // for mentor
-      //       courseExpertise: formData.courseExpertise,
-      //       availability: formData.
-      //     }),
-      //   });
-
-      //   const result = await response.json();
-
-      //   if (!response.ok) {
-      //     alert(result.message || 'Profile completion failed');
-      //     return;
-      //   }
-
-      //   alert('Profile completed successfully!');
-      //   // Optionally store token if backend returns it:
-      //   // localStorage.setItem('token', result.token);
-      //   navigate('/login');
-      // }
     } catch (error) {
       console.error('Error completing profile:', error);
       alert('Something went wrong while submitting your profile.');
@@ -485,7 +500,6 @@ const Signup = () => {
     setFormData((prev) => ({ ...prev, courseExpertise: updated }));
   };
 
-  console.log('data', programs);
   return (
     <div className='signup'>
       <div className='gradient-boxes'>
@@ -765,7 +779,7 @@ const Signup = () => {
                 )}
               </div>
             )}
-            {formData.role === 'Student' && step === 5 && (
+            {(formData.role === 'Student' || formData.role === 'Mentor') && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Graduation Date</h2>
                 <div className='input-group'>
@@ -844,74 +858,84 @@ const Signup = () => {
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
 
-                {formData.courseExpertise.map((expertise, index) => (
-                  <div key={index} className='expertise-block'>
-                    {/* Course Name */}
-                    <div className='input-group'>
-                      <label>Course*</label>
-                      <select
-                        name='course'
-                        value={expertise.course}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'course', e.target.value)}
-                        required
-                      >
-                        <option value=''>Select Course</option>
-                        {courses.map((course) => (
-                          <option key={course._id} value={course._id}>
-                            {course.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                {/* Static Input Fields */}
+                <div className='input-group'>
+                  <label>Course*</label>
+                  <select
+                    value={currentExpertise.course}
+                    onChange={(e) => handleCurrentExpertiseChange('course', e.target.value)}
+                    required
+                  >
+                    <option value=''>Select Course</option>
+                    {courses.map((course) => (
+                      <option key={course._id} value={course._id}>
+                        {course.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                    {/* Topics Covered */}
-                    <div className='input-group'>
-                      <label>Topics Covered*</label>
-                      <input
-                        type='text'
-                        value={expertise.topicsCovered}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'topicsCovered', e.target.value)}
-                        required
-                      />
-                    </div>
+                <div className='input-group'>
+                  <label>Topics Covered*</label>
+                  <input
+                    type='text'
+                    value={currentExpertise.topicsCovered}
+                    onChange={(e) => handleCurrentExpertiseChange('topicsCovered', e.target.value)}
+                    required
+                  />
+                </div>
 
-                    {/* Grade */}
-                    <div className='input-group'>
-                      <label>Grade*</label>
-                      <select
-                        value={expertise.grade}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'grade', e.target.value)}
-                        required
-                      >
-                        <option value=''>Select Grade</option>
-                        <option value='A+'>A+</option>
-                        <option value='A'>A</option>
-                        <option value='A-'>A-</option>
-                        <option value='B+'>B+</option>
-                      </select>
-                    </div>
+                <div className='input-group'>
+                  <label>Grade*</label>
+                  <select
+                    value={currentExpertise.grade}
+                    onChange={(e) => handleCurrentExpertiseChange('grade', e.target.value)}
+                    required
+                  >
+                    <option value=''>Select Grade</option>
+                    <option value='A+'>A+</option>
+                    <option value='A'>A</option>
+                    <option value='A-'>A-</option>
+                    <option value='B+'>B+</option>
+                  </select>
+                </div>
 
-                    {/* Instructor */}
-                    <div className='input-group'>
-                      <label>Instructor</label>
-                      <input
-                        type='text'
-                        value={expertise.instructor}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'instructor', e.target.value)}
-                      />
-                    </div>
-
-                    <button type='button' onClick={() => removeExpertise(index)}>
-                      Remove
-                    </button>
-                  </div>
-                ))}
+                <div className='input-group'>
+                  <label>Instructor</label>
+                  <input
+                    type='text'
+                    value={currentExpertise.instructor}
+                    onChange={(e) => handleCurrentExpertiseChange('instructor', e.target.value)}
+                  />
+                </div>
 
                 <button type='button' onClick={addExpertise}>
-                  Add More
+                  ➕ Add
                 </button>
+
+                {/* Dynamic Preview Section */}
+                {formData.courseExpertise.length > 0 && (
+                  <div className='course-list'>
+                    <h3>Added Expertise</h3>
+                    {formData.courseExpertise.map((course, index) => {
+                      const courseName = courses.find((c) => c._id === course.course)?.name || course.course;
+                      return (
+                        <div key={index} className='course-box'>
+                          <strong>{courseName}</strong>
+                          <br />
+                          Grade: {course.grade}
+                          <br />
+                          Topics: {course.topicsCovered}
+                          <br />
+                          Instructor: {course.instructor || 'N/A'}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
+
             {formData.role === 'Mentor' && step === 6 && (
               <div className='form-block'>
                 <h2>Step 6: Availability</h2>
@@ -977,6 +1001,54 @@ const Signup = () => {
                 </div>
               </div>
             )}
+
+            {formData.role === 'Mentor' && step === 8 && (
+              <div className='form-block'>
+                <h2>Step 8: Your Overall GPA</h2>
+
+                {/* Show GPA checkbox */}
+                <div className='input-group'>
+                  <label>
+                    Do you want to show your GPA?
+                    <input
+                      type='checkbox'
+                      name='showGPA'
+                      checked={formData.showGPA}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          showGPA: e.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                {/* GPA input field */}
+                {formData.showGPA && (
+                  <div className='input-group'>
+                    <label>
+                      Overall GPA*{' '}
+                      <span data-tooltip-id='mentorProof-tooltip' className='info-icon'>
+                        i
+                      </span>
+                    </label>
+                    <Tooltip id='mentorProof-tooltip' content='Your overall GPA out of 4.0' />
+                    <input
+                      type='number'
+                      name='overallGPA'
+                      value={formData.overallGPA}
+                      onChange={handleChange}
+                      min='0'
+                      max='4'
+                      step='0.01'
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {formData.role === 'Alumni' && step === 3 && (
               <div className='form-block'>
                 <h2>Step 3: Graduation Info</h2>
