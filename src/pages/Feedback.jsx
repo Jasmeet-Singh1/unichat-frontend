@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const Feedback = ({ role = "mentor" }) => {
+const Feedback = ({ role  }) => {
   const [experience, setExperience] = useState("");
   const [comments, setComments] = useState("");
   const [anonymous, setAnonymous] = useState(false);
@@ -167,7 +167,7 @@ const Feedback = ({ role = "mentor" }) => {
 
   return (
     <div style={styles.page}>
-      {role === "student" ? studentView : mentorView}
+      {role === "Student" ? studentView : mentorView}
     </div>
   );
 };
