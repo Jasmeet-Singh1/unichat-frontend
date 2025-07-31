@@ -1,7 +1,10 @@
 import {
   Routes,
   Route,
-  useNavigate
+  useNavigate,
+  Navigate,
+  Outlet,
+  useLocation,
 } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
@@ -27,7 +30,6 @@ import AlumniViewEvents from "./pages/AlumniViewEvents";
 import Layout from "./pages/Layout";
 import AlumniCreateForums from "./pages/AlumniCreateForums";
 
-
 const WithNavbar = ({ children, role }) => (
   <div
     style={{
@@ -52,26 +54,36 @@ const WithNavbar = ({ children, role }) => (
 );
 
 function App() {
- const navigate = useNavigate();
+  const navigate = useNavigate();
+  const location = useLocation(); 
   const [role, setRole] = useState(null);
 
+  const ProtectedRoute = ({ children }) => {
+    const storedRole = localStorage.getItem("role");
+    if (!storedRole) {
+      return <Navigate to="/login" replace />;
+    }
+    return children ? children : <Outlet />;
+  };
+
   useEffect(() => {
-    const storedRole = localStorage.getItem('role');
+    const storedRole = localStorage.getItem("role");
+    const allowedPublicRoutes = ["/login", "/signup", "/logout"];
     if (storedRole) {
       setRole(storedRole);
-    } else {
-      navigate('/login');
+    } else if (!allowedPublicRoutes.includes(location.pathname)) {
+      navigate("/login");
     }
     console.log("Role retrieved from localStorage:", storedRole);
-  }, [navigate]);
+  }, [navigate, location.pathname]); // Added location.pathname to dependency array
 
   return (
     <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/logout" element={<Logout />} />
-
+      {/* Public Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/logout" element={<Logout />} />
+      <Route element={<ProtectedRoute />}>
         {/* Alumni */}
         {role === "Alumni" ? (
           <>
@@ -104,7 +116,6 @@ function App() {
                 </WithNavbar>
               }
             />
-
             <Route
               path="/browse"
               element={
@@ -137,7 +148,6 @@ function App() {
                 </WithNavbar>
               }
             />
-
             {/* Mentor-specific */}
             {role === "Mentor" && (
               <Route
@@ -149,7 +159,6 @@ function App() {
                 }
               />
             )}
-
             {/* Student-specific */}
             {role === "Student" && (
               <Route
@@ -163,10 +172,10 @@ function App() {
             )}
           </>
         )}
-
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      </Route>
+      {/* 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
