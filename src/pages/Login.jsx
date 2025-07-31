@@ -18,39 +18,57 @@ function Login() {
       return;
     }
 
-    //Validate only student/mentor roles here later
     if (!email.endsWith('@student.kpu.ca') && !email.endsWith('@mentor.kpu.ca')) {
       setError('Only KPU student or mentor emails are allowed.');
       return;
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/users/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+      // First, perform login to get JWT token
+      const loginRes = await fetch('http://localhost:5000/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
+      const loginData = await loginRes.json();
 
-    if (!res.ok) {
-      setError(data.message || 'Login failed');
-      return;
+      if (!loginRes.ok) {
+        setError(loginData.message || 'Login failed');
+        return;
+      }
+
+      // Save token and user data
+      if (loginData.token) localStorage.setItem('token', loginData.token);
+      if (loginData.user) localStorage.setItem('user', JSON.stringify(loginData.user));
+
+      // Fetch user info using the token
+      const userInfoRes = await fetch('http://localhost:5000/api/users/user-info', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${loginData.token}`,
+        },
+      });
+
+      const userInfoData = await userInfoRes.json();
+
+      if (!userInfoRes.ok) {
+        setError(userInfoData.message || 'Failed to fetch user info');
+        return;
+      }
+
+      // Save role and name to localStorage
+      localStorage.setItem('role', userInfoData.role);
+      localStorage.setItem('userName', `${userInfoData.firstName} ${userInfoData.lastName}`);
+
+      setError('');
+      navigate('/');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Something went wrong. Please try again later.');
     }
-
-    //Save token + user (if returned by backend)
-    if (data.token) localStorage.setItem('token', data.token);
-    if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-
-    setError('');
-    navigate('/dashboard'); 
-  } 
-  catch (err) {
-    console.error('Login error:', err);
-    setError('Something went wrong. Please try again later.');
-  }
-};
-
+  };
 
   return (
     <div className='login-container'>
