@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Dashboard = ({ role = 'mentor', name = 'User' }) => {
+const Dashboard = ({ role }) => {
   const styles = {
     container: {
       backgroundColor: '#F5F7FA',
@@ -60,10 +60,10 @@ const Dashboard = ({ role = 'mentor', name = 'User' }) => {
 
   return (
     <div style={styles.container}>
-      {role === 'student' ? (
+      {role === 'Student' ? (
         <>
           <div style={styles.section}>
-            <h2 style={styles.heading}>👋 Welcome, {name}!</h2>
+            <h2 style={styles.heading}>👋 Welcome {role}!</h2>
             <p style={styles.paragraph}>This is your personalized dashboard. Here’s what you can do today:</p>
             <ul>
               <li style={styles.listItem}>🔍 Browse and connect with students, alumni or mentors</li>
@@ -74,7 +74,7 @@ const Dashboard = ({ role = 'mentor', name = 'User' }) => {
           </div>
 
           <div style={styles.section}>
-            <h2 style={styles.heading}>📢 Campus Forums</h2>
+            <h2 style={styles.heading}><a href='/forums'>📢 Campus Forums</a></h2>
             <div>
               <p style={styles.paragraph}>
                 <strong>Alice (CS 2025):</strong> Check out our new AI club meetup this Friday!
@@ -89,7 +89,7 @@ const Dashboard = ({ role = 'mentor', name = 'User' }) => {
           </div>
 
           <div style={styles.section}>
-            <h2 style={styles.heading}>📩 Messages</h2>
+            <h2 style={styles.heading}><a href='/chat'>📩 Messages</a></h2>
             <p style={styles.paragraph}>You have no new messages. Start chatting with students or mentors!</p>
           </div>
         </>
