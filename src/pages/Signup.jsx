@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,6 +32,7 @@ const Signup = () => {
       email: '',
       password: '',
       confirmPassword: '',
+      otp: '',
       bio: '',
       programName: '',
       programType: '',
@@ -44,7 +45,14 @@ const Signup = () => {
       clubs: [],
       club: '',
       designation: '',
-      courseExpertise: '',
+      courseExpertise: [
+        {
+          course: '',
+          topicsCovered: '',
+          grade: '',
+          instructor: '',
+        },
+      ],
       topicCovered: '',
       availabilityDays: [],
       availabilityFrom: '',
@@ -89,6 +97,7 @@ const Signup = () => {
   const requiredFieldsByStep = {
     1: ['firstName'],
     2: ['role', 'email', 'password', 'confirmPassword'],
+    2.5: ['otp'],
     3: formData.role === 'Student' || formData.role === 'Mentor' ? ['bio'] : [],
     4:
       formData.role === 'Student' || formData.role === 'Mentor'
@@ -106,7 +115,7 @@ const Signup = () => {
         : [],
     6:
       formData.role === 'Student'
-        ? [] // Designation no longer required unless a club is added
+        ? []
         : formData.role === 'Mentor'
         ? []
         : [],
@@ -139,20 +148,21 @@ const Signup = () => {
         const result = await response.json();
 
         if (formData.email === '') {
+          alert('Email is required.');
+          return false;
         }
 
         if (response.status === 400 || response.status === 409) {
-          // Invalid domain or existing user
           alert(result.message || 'Registration failed. Redirecting to login.');
           navigate('/login');
-          return;
+          return false;
         }
 
         if (!passwordRegex.test(formData.password)) {
           alert(
-            'Invalid password. Password Must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters '
+            'Invalid password. Password must contain at least 1 lowercase, 1 uppercase, 1 number, 1 special character (!@#$%^&*), and be more than 7 characters.'
           );
-          navigate('/login'); // ✅ force redirect
+          navigate('/login');
           return false;
         }
 
@@ -164,20 +174,24 @@ const Signup = () => {
 
         if (!response.ok) {
           alert('Something went wrong. Try again.');
-          return;
+          return false;
         }
 
         alert('OTP sent to your email.');
-        setStep(2.5); // ✅ Go to OTP input
+        setStep(2.5);
+        return false;
       } catch (err) {
         console.error('Registration error:', err);
         alert('Something went wrong. Try again.');
+        return false;
       }
-      return;
+    }
+    if (step === 2.5) {
+      return true;
     }
     if (step === 4 && (!formData.enrolledCourses || formData.enrolledCourses.length === 0)) {
       alert('Please select at least one course.');
-      return;
+      return false;
     }
     if (
       step === 4 &&
@@ -206,6 +220,11 @@ const Signup = () => {
   const handleNext = async () => {
     const isValid = await validateFields();
     if (!isValid) return;
+
+    if (step === 2.5) {
+      await verifyOtp();
+      return;
+    }
 
     if (formData.role === 'Student' && step >= 6) {
       alert('Student account created successfully.');
@@ -243,20 +262,17 @@ const Signup = () => {
       setFormData((prev) => ({ ...prev, [name]: options }));
     } else {
       if (name === 'program') {
-        // Always set the selected program name
         setFormData((prev) => ({ ...prev, [name]: value }));
 
         const selectedProgram = programs.find((p) => p.name === value);
         console.log('selectedProgram', selectedProgram);
         if (selectedProgram) {
           try {
-            // Fetch program details
             const res = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}`);
             if (!res.ok) throw new Error('Program fetch failed');
             const details = await res.json();
             console.log(details);
 
-            // Fetch courses
             const coursesRes = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}/courses`);
             const coursesData = await coursesRes.json();
 
@@ -267,19 +283,17 @@ const Signup = () => {
               faculty: details.faculty || '',
             }));
 
-            setCourses(coursesData); // ✅ update dropdown options
+            setCourses(coursesData);
           } catch (err) {
             console.error('Program detail fetch error:', err);
-            // Optional: clear fields or show error
             setFormData((prev) => ({
               ...prev,
               programType: '',
               faculty: '',
             }));
-            setCourses([]); // fallback
+            setCourses([]);
           }
         } else {
-          // Optional fallback if not found in list
           setFormData((prev) => ({
             ...prev,
             programType: '',
@@ -309,7 +323,7 @@ const Signup = () => {
     setFormData((prev) => ({
       ...prev,
       courseCode: selectedCode,
-      course: selectedCode, // Since name == code in your case
+      course: selectedCode,
     }));
   };
 
@@ -334,11 +348,23 @@ const Signup = () => {
     }));
   };
 
+  const addExpertise = () => {
+    setFormData((prev) => ({
+      ...prev,
+      courseExpertise: [...prev.courseExpertise, { course: '', topicsCovered: '', grade: '', instructor: '' }],
+    }));
+  };
+
+  const removeExpertise = (index) => {
+    const updated = formData.courseExpertise.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
+  };
+
   const handleClubChange = (e) => {
     const selectedClub = e.target.value;
     setFormData((prev) => ({
       ...prev,
-      club: selectedClub, // Temporary field to hold selected club
+      club: selectedClub,
     }));
   };
 
@@ -356,12 +382,9 @@ const Signup = () => {
     }));
   };
 
-  // const AvailabilityComponent = () => {};
-
   const handleAddAvailability = () => {
     if (selectedDay && fromTime && toTime) {
       setAvailabilityList((prev) => [...prev, { day: selectedDay, from: fromTime, to: toTime }]);
-      // Reset the input fields
       setSelectedDay('');
       setFromTime('');
       setToTime('');
@@ -371,6 +394,7 @@ const Signup = () => {
   const handleRemoveAvailability = (index) => {
     setAvailabilityList((prev) => prev.filter((_, i) => i !== index));
   };
+
   const verifyOtp = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
@@ -390,44 +414,51 @@ const Signup = () => {
       }
 
       alert('Email verified successfully!');
-      setStep(3); // ✅ Go to next form step
+      setFormData((prev) => ({ ...prev, otp: '' }));
+      setStep(3);
     } catch (err) {
-      console.error(err);
+      console.error('OTP verification error:', err);
       alert('Something went wrong during OTP verification');
     }
   };
 
   const submitProfile = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          bio: formData.bio,
-          programType: formData.programType,
-          program: formData.program,
-          coursesEnrolled: formData.enrolledCourses, // this should be an array
-          expectedGradDate: formData.gradDate, // for students
-          studentClubs: formData.clubs, // array of { club, designation }
-        }),
-      });
+      if (formData.role === 'Student') {
+        const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email,
+            bio: formData.bio,
+            programType: formData.programType,
+            program: formData.program,
+            coursesEnrolled: formData.enrolledCourses,
+            expectedGradDate: formData.gradDate,
+            studentClubs: formData.clubs,
+          }),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        alert(result.message || 'Profile completion failed');
-        return;
+        if (!response.ok) {
+          alert(result.message || 'Profile completion failed');
+          return;
+        }
+
+        alert('Profile completed successfully!');
+        navigate('/login');
       }
-
-      alert('Profile completed successfully!');
-      // Optionally store token if backend returns it:
-      // localStorage.setItem('token', result.token);
-      navigate('/login');
     } catch (error) {
       console.error('Error completing profile:', error);
       alert('Something went wrong while submitting your profile.');
     }
+  };
+
+  const handleCourseExpertiseChange = (index, field, value) => {
+    const updated = [...formData.courseExpertise];
+    updated[index][field] = value;
+    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
   };
 
   console.log('data', programs);
@@ -554,13 +585,11 @@ const Signup = () => {
               <div className='form-block'>
                 <h2>Step 2.5: Verify Email</h2>
                 <div className='input-group'>
-                  <label>Enter OTP sent to your email</label>
+                  <label>Enter OTP sent to your email*</label>
                   <input type='text' name='otp' value={formData.otp || ''} onChange={handleChange} required />
                 </div>
-                <button onClick={verifyOtp}>Verify OTP</button>
               </div>
             )}
-
             {step === 3 && (formData.role === 'Student' || formData.role === 'Mentor') && (
               <div className='form-block'>
                 <h2>Step 3: Bio</h2>
@@ -596,7 +625,6 @@ const Signup = () => {
                     ))}
                   </select>
                 </div>
-
                 <div className='input-group'>
                   <label>
                     Program Type*{' '}
@@ -607,7 +635,6 @@ const Signup = () => {
                   <Tooltip id='programType-tooltip' content='Auto-filled based on program' />
                   <input type='text' name='programType' value={formData.programType || ''} readOnly required />
                 </div>
-
                 <div className='input-group'>
                   <label>
                     Faculty*{' '}
@@ -618,7 +645,6 @@ const Signup = () => {
                   <Tooltip id='faculty-tooltip' content='Auto-filled based on program' />
                   <input type='text' name='faculty' value={formData.faculty || ''} readOnly required />
                 </div>
-
                 <div className='input-group'>
                   <label>
                     Select Course*{' '}
@@ -630,9 +656,7 @@ const Signup = () => {
                   <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
                     <option value=''>Select Course</option>
                     {courses.map((course) => (
-                      <option key={course._id} value={course._id}>
-                        {course.name}
-                      </option>
+                      <option value={course._id}>{course.name}</option>
                     ))}
                   </select>
                 </div>
@@ -730,8 +754,6 @@ const Signup = () => {
             {formData.role === 'Student' && step === 6 && (
               <div className='form-block'>
                 <h2>Step 6: Clubs</h2>
-
-                {/* Club Selection */}
                 <div className='input-group'>
                   <label>
                     Select Club{' '}
@@ -749,8 +771,6 @@ const Signup = () => {
                     ))}
                   </select>
                 </div>
-
-                {/* Designation Selection */}
                 {formData.club && (
                   <>
                     <div className='input-group'>
@@ -772,8 +792,6 @@ const Signup = () => {
                     </button>
                   </>
                 )}
-
-                {/* Club List Preview */}
                 {formData.clubs.length > 0 && (
                   <div className='club-list'>
                     <h3>Added Clubs:</h3>
@@ -786,86 +804,71 @@ const Signup = () => {
                 )}
               </div>
             )}
-
             {formData.role === 'Mentor' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
-
-                {/* Course Expertise Heading */}
-                <h3>Course Expertise</h3>
-
-                {/* Course Name */}
-                <div className='input-group'>
-                  <label>
-                    Course Name*{' '}
-                    <span data-tooltip-id='courseNameMentor-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='courseNameMentor-tooltip' content='Name of the course you teach' />
-                  <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
-                    <option value=''>Select Course</option>
-                    {courses.map((course) => (
-                      <option key={course} value={course}>
-                        {course}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Topics Covered */}
-                <div className='input-group'>
-                  <label>
-                    Topics Covered*{' '}
-                    <span data-tooltip-id='topicCovered-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='topicCovered-tooltip' content='Topics you cover in your course' />
-                  <input
-                    type='text'
-                    name='topicCovered'
-                    value={formData.topicCovered}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* Grade (Optional) */}
-                <div className='input-group'>
-                  <label>
-                    Grade{' '}
-                    <span data-tooltip-id='grade-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='grade-tooltip' content='Optional grade for the course' />
-                  <select name='grade' value={formData.grade} onChange={handleChange}>
-                    <option value=''>Select Grade (Optional)</option>
-                    <option value='A+'>A+</option>
-                    <option value='A'>A</option>
-                    <option value='A-'>A-</option>
-                    <option value='B+'>B+</option>
-                  </select>
-                </div>
-
-                {/* Instructor */}
-                <div className='input-group'>
-                  <label>
-                    Instructor{' '}
-                    <span data-tooltip-id='instructorMentor-tooltip' className='info-icon'>
-                      i
-                    </span>
-                  </label>
-                  <Tooltip id='instructorMentor-tooltip' content='Name of the instructor (optional)' />
-                  <input type='text' name='instructor' value={formData.instructor} onChange={handleChange} />
-                </div>
+                {formData.courseExpertise.map((expertise, index) => (
+                  <div key={index} className='expertise-block'>
+                    <div className='input-group'>
+                      <label>Course*</label>
+                      <select
+                        name='course'
+                        value={expertise.course}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'course', e.target.value)}
+                        required
+                      >
+                        <option value=''>Select Course</option>
+                        {courses.map((course) => (
+                          <option key={course._id} value={course._id}>
+                            {course.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className='input-group'>
+                      <label>Topics Covered*</label>
+                      <input
+                        type='text'
+                        value={expertise.topicsCovered}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'topicsCovered', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className='input-group'>
+                      <label>Grade*</label>
+                      <select
+                        value={expertise.grade}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'grade', e.target.value)}
+                        required
+                      >
+                        <option value=''>Select Grade</option>
+                        <option value='A+'>A+</option>
+                        <option value='A'>A</option>
+                        <option value='A-'>A-</option>
+                        <option value='B+'>B+</option>
+                      </select>
+                    </div>
+                    <div className='input-group'>
+                      <label>Instructor</label>
+                      <input
+                        type='text'
+                        value={expertise.instructor}
+                        onChange={(e) => handleCourseExpertiseChange(index, 'instructor', e.target.value)}
+                      />
+                    </div>
+                    <button type='button' onClick={() => removeExpertise(index)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button type='button' onClick={addExpertise}>
+                  Add More
+                </button>
               </div>
             )}
             {formData.role === 'Mentor' && step === 6 && (
               <div className='form-block'>
                 <h2>Step 6: Availability</h2>
-                {/* Day Selection */}
                 <div className='input-group'>
                   <label>
                     Availability Day{' '}
@@ -883,24 +886,17 @@ const Signup = () => {
                     <option value='Friday'>Friday</option>
                   </select>
                 </div>
-
-                {/* From Time Selection */}
                 <div className='input-group'>
                   <label>From Time</label>
                   <input type='time' value={fromTime} onChange={(e) => setFromTime(e.target.value)} required />
                 </div>
-
-                {/* To Time Selection */}
                 <div className='input-group'>
                   <label>To Time</label>
                   <input type='time' value={toTime} onChange={(e) => setToTime(e.target.value)} required />
                 </div>
-
                 <button type='button' onClick={handleAddAvailability} className='add-button'>
                   ➕ Add Availability
                 </button>
-
-                {/* Displaying the List of Availabilities */}
                 <h3>Selected Availability</h3>
                 <ul>
                   {availabilityList.map((availability, index) => (
@@ -1052,12 +1048,14 @@ const Signup = () => {
                 </div>
               </div>
             )}
-            {step !== 2.5 && (
-              <div className='button-group'>
-                {step > 1 && <button onClick={handleBack}>Back</button>}
+            <div className='button-group'>
+              {step > 1 && <button onClick={handleBack}>Back</button>}
+              {step === 2.5 ? (
+                <button onClick={handleNext}>Verify OTP</button>
+              ) : (
                 <button onClick={handleNext}>Next</button>
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
         <p className='login-text'>

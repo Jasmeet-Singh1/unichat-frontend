@@ -1,6 +1,6 @@
 import React from "react";
 
-const Browse = ({ role = "mentor" }) => {
+const Browse = ({ role }) => {
   const styles = {
     container: {
       backgroundColor: "#F5F7FA",
@@ -110,7 +110,7 @@ const Browse = ({ role = "mentor" }) => {
   return (
     <div style={styles.container}>
       <div style={styles.section}>
-        {role === "student" ? (
+        {role === "Student" ? (
           <>
             <div style={styles.heading}>🔍 Search Campus Community</div>
             <div style={styles.searchContainer}>

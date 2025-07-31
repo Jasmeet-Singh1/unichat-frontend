@@ -10,7 +10,7 @@ const Logout = () => {
 
   useEffect(() => {
     // Clear storage
-    localStorage.removeItem("user");
+    localStorage.removeItem("role");
 
     // Progress bar animation
     const interval = setInterval(() => {

@@ -24,7 +24,7 @@ const dummyPostsFromDB = [
   },
 ];
 
-const Forums = ({ role = "Student" }) => {
+const Forums = ({ role }) => {
   const [posts, setPosts] = useState([]);
 
   useEffect(() => {

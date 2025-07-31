@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const Notification = () => {
+const Notification = (role) => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -123,10 +123,6 @@ const Notification = () => {
           ))
         )}
       </motion.div>
-
-      <div className="footer">
-        © 2025 UniChat - Designed for KPU Students & Alumni
-      </div>
     </>
   );
 };
