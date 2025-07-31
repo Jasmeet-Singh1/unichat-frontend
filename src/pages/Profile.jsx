@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const Profile = ({ role = "mentor" }) => {
+const Profile = ({ role }) => {
   const [formData, setFormData] = useState({
     fullname: "",
     email: "",
@@ -82,7 +82,7 @@ const Profile = ({ role = "mentor" }) => {
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>
-        👤 Edit Your {role === "mentor" ? "Mentor" : "Student"} Profile
+        👤 Edit Your {role === "Mentor" ? "Mentor" : "Student"} Profile
       </h2>
       <form>
         <label htmlFor="fullname" style={styles.label}>
@@ -109,7 +109,7 @@ const Profile = ({ role = "mentor" }) => {
           style={styles.input}
         />
 
-        {role === "mentor" ? (
+        {role === "Mentor" ? (
           <>
             <label htmlFor="expertise" style={styles.label}>
               Area of Expertise
