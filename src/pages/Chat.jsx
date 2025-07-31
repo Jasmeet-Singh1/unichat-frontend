@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 
-const Chat = ({ role = "mentor" }) => {
+const Chat = ({ role }) => {
   const [message, setMessage] = useState("");
-  const isMentor = role === "mentor";
+  const isMentor = role === "Mentor";
 
   const handleSend = () => {
     if (message.trim()) {
