@@ -76,8 +76,8 @@ const Signup = () => {
     const fetchMetadata = async () => {
       try {
         const [programRes, clubRes] = await Promise.all([
-          fetch('http://localhost:5000/api/programs'),
-          fetch('http://localhost:5000/api/getClubs'),
+          fetch('http://localhost:3001/api/programs'),
+          fetch('http://localhost:3001/api/getClubs'),
         ]);
 
         const programsData = await programRes.json();
@@ -137,7 +137,7 @@ const Signup = () => {
     }
     if (step === 2) {
       try {
-        const endpoint = 'http://localhost:5000/api/users/register';
+        const endpoint = 'http://localhost:3001/api/users/register';
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -274,12 +274,12 @@ const Signup = () => {
         console.log('selectedProgram', selectedProgram);
         if (selectedProgram) {
           try {
-            const res = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}`);
+            const res = await fetch(`http://localhost:3001/api/programs/${selectedProgram._id}`);
             if (!res.ok) throw new Error('Program fetch failed');
             const details = await res.json();
             console.log(details);
 
-            const coursesRes = await fetch(`http://localhost:5000/api/programs/${selectedProgram._id}/courses`);
+            const coursesRes = await fetch(`http://localhost:3001/api/programs/${selectedProgram._id}/courses`);
             const coursesData = await coursesRes.json();
 
             setFormData((prev) => ({
@@ -406,7 +406,7 @@ const Signup = () => {
 
   const verifyOtp = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users/verify-otp-only', {
+      const response = await fetch('http://localhost:3001/api/users/verify-otp-only', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -497,7 +497,7 @@ const Signup = () => {
     console.log('📦 Request data:', JSON.stringify(requestData, null, 2));
     
     // Use the same endpoint for all roles
-     const response = await fetch('http://localhost:5000/api/users/create-user', {
+     const response = await fetch('http://localhost:3001/api/users/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestData),

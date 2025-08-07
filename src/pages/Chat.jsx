@@ -1,224 +1,126 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
+import Chat from '../components/Chat'; // Your teammate's comprehensive chat
 
-const Chat = ({ role }) => {
-  const [message, setMessage] = useState("");
-  const isMentor = role === "Mentor";
+const ChatPage = ({ role }) => {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      // Message send logic goes here
-      setMessage("");
-    }
-  };
+  useEffect(() => {
+    // Get user data from localStorage (your existing auth system)
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('role');
+    
+    // You might need to add these to your login process if they don't exist:
+    let userId = localStorage.getItem('userId');
+    let userEmail = localStorage.getItem('userEmail');
+    let firstName = localStorage.getItem('firstName');
+    let lastName = localStorage.getItem('lastName');
 
-  const chatData = isMentor
-    ? {
-        headerName: "Rajwinder Kaur",
-        messages: [
-          { text: "Hello Mentor!", type: "received", time: "10:00 AM" },
-          {
-            text: "Hi Rajwinder! How can I help?",
-            type: "sent",
-            time: "10:01 AM ✓✓",
-          },
-        ],
-        chatList: [
-          { name: "Rajwinder Kaur", last: "Thank you!" },
-          { name: "Jason Miller", last: "Will join the session." },
-        ],
+    // If you don't store these separately, you might store user object:
+    const userDataString = localStorage.getItem('user');
+    let userData = null;
+    
+    if (userDataString) {
+      try {
+        userData = JSON.parse(userDataString);
+        userId = userId || userData.id;
+        userEmail = userEmail || userData.email;
+        firstName = firstName || userData.firstName;
+        lastName = lastName || userData.lastName;
+      } catch (error) {
+        console.error('Error parsing user data:', error);
       }
-    : {
-        headerName: "Emily Watson",
-        messages: [
-          { text: "Hi Emily!", type: "received", time: "10:00 AM" },
-          {
-            text: "Hey there! How are you?",
-            type: "sent",
-            time: "10:01 AM ✓✓",
-          },
-          {
-            text: "Can I ask about career paths?",
-            type: "sent",
-            time: "10:02 AM ✓",
-          },
-          { text: "Of course! Ask away.", type: "received", time: "10:03 AM" },
-        ],
-        chatList: [
-          { name: "Emily Watson", last: "Hey, thanks!" },
-          { name: "John Carter", last: "Sure, I'll help!" },
-          { name: "Prof. Ali", last: "Send me your resume." },
-        ],
-      };
+    }
 
-  return (
-    <div style={styles.container}>
-      <div style={styles.chatList}>
-        <div style={styles.chatListHeader}>
-          {isMentor ? "💬 CHATS" : "💬 PERSONAL CHATS"}
+    console.log('Chat Page - Auth data:', {
+      token: token ? 'EXISTS' : 'MISSING',
+      role: userRole,
+      userId,
+      firstName,
+      lastName,
+      email: userEmail
+    });
+
+    if (token && userRole) {
+      setCurrentUser({
+        id: userId,
+        token: token,
+        role: userRole,
+        email: userEmail,
+        firstName: firstName || 'User',
+        lastName: lastName || '',
+        name: firstName && lastName ? `${firstName} ${lastName}` : 'User',
+        avatar: null, // You don't have avatars
+        fullName: firstName && lastName ? `${firstName} ${lastName}` : 'User'
+      });
+    } else {
+      console.error('Missing auth data for chat');
+    }
+    
+    setLoading(false);
+  }, []);
+
+  // Show loading spinner while getting user data
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading chat...</p>
         </div>
-        {chatData.chatList.map((chat, idx) => (
-          <div key={idx} style={styles.chatItem}>
-            <strong>{chat.name}</strong>
-            <br />
-            <small style={{ color: "#555" }}>Last message: {chat.last}</small>
-          </div>
-        ))}
-        <div style={styles.addChatBtn}>➕ Start New Chat</div>
-        {!isMentor && <div style={styles.createGroupBtn}>👥 Create Group</div>}
       </div>
+    );
+  }
 
-      <div style={styles.chatBox}>
-        <div style={styles.chatHeader}>
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <img
-              src="avatar.jpg"
-              alt="Profile"
-              style={{ height: "40px", borderRadius: "50%" }}
-            />
-            <span style={styles.headerName}>{chatData.headerName}</span>
-          </div>
-        </div>
-
-        <div style={styles.messages}>
-          {chatData.messages.map((msg, idx) => (
-            <div
-              key={idx}
-              style={{
-                ...styles.message,
-                ...(msg.type === "sent" ? styles.sent : styles.received),
-              }}
-            >
-              {msg.text}
-              <div style={styles.timestamp}>{msg.time}</div>
-            </div>
-          ))}
-        </div>
-
-        <div style={styles.inputArea}>
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            style={styles.input}
-          />
-          <button style={styles.sendBtn} onClick={handleSend}>
-            Send
+  // Show error if no user data
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="text-center p-8 bg-white rounded-lg shadow">
+          <h3 className="text-xl font-semibold text-gray-700 mb-4">Authentication Required</h3>
+          <p className="text-gray-600 mb-4">Please log in to access the chat.</p>
+          <button 
+            onClick={() => window.location.href = '/login'}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Go to Login
           </button>
+          
+          {/* Debug info */}
+          <details className="mt-4 text-left">
+            <summary className="cursor-pointer text-sm text-gray-500">Debug Info</summary>
+            <pre className="text-xs bg-gray-100 p-2 rounded mt-2">
+              {JSON.stringify({
+                token: localStorage.getItem('token') ? 'EXISTS' : 'MISSING',
+                role: localStorage.getItem('role'),
+                userId: localStorage.getItem('userId'),
+                user: localStorage.getItem('user') ? 'EXISTS' : 'MISSING'
+              }, null, 2)}
+            </pre>
+          </details>
         </div>
       </div>
+    );
+  }
+
+  // Render the actual chat component
+  return (
+    <div className="h-full w-full">
+      <Chat 
+        currentUser={currentUser}
+        apiBaseUrl="http://localhost:3001"
+        socketUrl="http://localhost:3001"
+        onError={(error) => {
+          console.error('Chat error:', error);
+          // You could show a toast notification here
+        }}
+        onConnectionChange={(connected) => {
+          console.log('Chat connection status:', connected);
+          // You could show connection status in your navbar
+        }}
+      />
     </div>
   );
 };
 
-const styles = {
-  container: {
-    display: "flex",
-    height: "85vh",
-    backgroundColor: "#F5F7FA",
-    fontFamily: "'Segoe UI', sans-serif",
-  },
-  chatList: {
-    width: "25%",
-    backgroundColor: "#fff",
-    borderRight: "1px solid #ddd",
-    overflowY: "auto",
-  },
-  chatListHeader: {
-    backgroundColor: "#2C3E50",
-    color: "white",
-    padding: "10px",
-    fontWeight: "bold",
-    fontSize: "16px",
-    textAlign: "center",
-  },
-  chatItem: {
-    padding: "15px",
-    borderBottom: "1px solid #eee",
-    cursor: "pointer",
-  },
-  addChatBtn: {
-    textAlign: "center",
-    padding: "10px",
-    backgroundColor: "#F2F2F2",
-    fontWeight: "bold",
-    cursor: "pointer",
-    borderTop: "1px solid #ccc",
-  },
-  createGroupBtn: {
-    textAlign: "center",
-    padding: "10px",
-    backgroundColor: "#F2F2F2",
-    fontWeight: "bold",
-    cursor: "pointer",
-    borderTop: "1px solid #ccc",
-  },
-  chatBox: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-  },
-  chatHeader: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "10px",
-    backgroundColor: "#fff",
-    borderBottom: "1px solid #ccc",
-  },
-  headerName: {
-    fontWeight: "bold",
-    marginLeft: "10px",
-    color: "#222",
-  },
-  messages: {
-    flex: 1,
-    padding: "20px",
-    overflowY: "auto",
-    backgroundColor: "#E9E9E9",
-  },
-  message: {
-    marginBottom: "15px",
-    padding: "10px",
-    borderRadius: "8px",
-    maxWidth: "70%",
-    wordBreak: "break-word",
-  },
-  sent: {
-    backgroundColor: "#d1e7dd",
-    alignSelf: "flex-end",
-  },
-  received: {
-    backgroundColor: "#f8d7da",
-    alignSelf: "flex-start",
-  },
-  timestamp: {
-    fontSize: "11px",
-    color: "#555",
-    marginTop: "5px",
-  },
-  inputArea: {
-    display: "flex",
-    padding: "10px",
-    backgroundColor: "#fff",
-    borderTop: "1px solid #ccc",
-  },
-  input: {
-    flex: 1,
-    padding: "10px",
-    fontSize: "14px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-  },
-  sendBtn: {
-    marginLeft: "10px",
-    padding: "10px 15px",
-    backgroundColor: "#3A86FF",
-    color: "white",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-  },
-};
-
-export default Chat;
+export default ChatPage;

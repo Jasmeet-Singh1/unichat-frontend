@@ -1,208 +1,887 @@
-import React from "react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './browse.css';
+
 
 const Browse = ({ role }) => {
-  const styles = {
-    container: {
-      backgroundColor: "#F5F7FA",
-      padding: "30px 20px",
-      maxWidth: "1000px",
-      margin: "auto",
-      fontFamily: "'Segoe UI', sans-serif",
-    },
-    section: {
-      backgroundColor: "#FFFFFF",
-      padding: "30px",
-      borderRadius: "10px",
-      boxShadow: "0 0 8px rgba(0, 0, 0, 0.08)",
-    },
-    heading: {
-      fontSize: "22px",
-      color: "#222",
-      marginBottom: "20px",
-      fontWeight: "bold",
-    },
-    searchContainer: {
-      marginBottom: "25px",
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "10px",
-    },
-    searchInput: {
-      flex: "1",
-      padding: "10px",
-      border: "1px solid #ccc",
-      borderRadius: "5px",
-      fontSize: "14px",
-    },
-    dropdown: {
-      padding: "10px",
-      border: "1px solid #ccc",
-      borderRadius: "5px",
-      backgroundColor: "#FFFFFF",
-      fontSize: "14px",
-      cursor: "pointer",
-    },
-    dropdownHover: {
-      backgroundColor: "#F2F2F2",
-    },
-    sectionTitle: {
-      fontSize: "16px",
-      fontWeight: "bold",
-      color: "#222",
-      marginTop: "20px",
-      marginBottom: "10px",
-    },
-    card: {
-      backgroundColor: "#fcfcfc",
-      border: "1px solid #ddd",
-      padding: "20px",
-      borderRadius: "8px",
-      marginBottom: "15px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    infoBox: {
-      maxWidth: "75%",
-    },
-    name: {
-      fontSize: "16px",
-      fontWeight: "bold",
-      color: "#222",
-    },
-    meta: {
-      fontSize: "13px",
-      color: "#555",
-      marginTop: "5px",
-    },
-    button: {
-      backgroundColor: "#3A86FF",
-      color: "#fff",
-      padding: "8px 14px",
-      border: "none",
-      borderRadius: "4px",
-      fontWeight: "bold",
-      cursor: "pointer",
-    },
-    courseBox: {
-      backgroundColor: "#f9f9f9",
-      padding: "10px 15px",
-      borderRadius: "6px",
-      border: "1px solid #eee",
-      marginBottom: "10px",
-      fontSize: "14px",
-    },
-    clubItem: {
-      backgroundColor: "#f9f9f9",
-      padding: "10px 15px",
-      borderRadius: "6px",
-      border: "1px solid #eee",
-      marginBottom: "10px",
-      fontSize: "14px",
-    },
-    infoText: {
-      color: "#555",
-      fontSize: "13px",
-      marginTop: "5px",
-    },
+  const navigate = useNavigate();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState({});
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  
+  // Search filters state
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    searchBy: 'name', // name, email, program, course
+    role: '',
+    program: '',
+    year: '',
+    courseCode: '',
+    courseName: ''
+  });
+
+  const getYearRange = () => {
+  const currentYear = new Date().getFullYear();
+  const startYear = currentYear - 10;
+  const endYear = currentYear + 1;
+  const years = [];
+  for (let y = startYear; y <= endYear; y++) {
+    years.push(y.toString());
+  }
+  return years;
+};
+  // Dynamic options populated from your APIs
+  const [filterOptions, setFilterOptions] = useState({
+    programs: [],
+    years: getYearRange(),
+    roles: ['Student', 'Mentor', 'Alumni'],
+    courses: []
+  });
+
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+
+  // Load filter options and initial users
+  useEffect(() => {
+    loadFilterOptions();
+    loadAllUsers(); // Load initial users
+  }, []);
+
+  // Load courses when program changes
+  useEffect(() => {
+    if (selectedProgramId) {
+      loadCoursesForProgram(selectedProgramId);
+    } else {
+      setFilterOptions(prev => ({ ...prev, courses: [] }));
+    }
+  }, [selectedProgramId]);
+
+  const loadFilterOptions = async () => {
+    try {
+      setLoadingOptions(true);
+      
+      // Load programs from your existing API
+      const programsResponse = await fetch('http://localhost:3001/api/programs', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (programsResponse.ok) {
+        const programsData = await programsResponse.json();
+        console.log('Loaded programs:', programsData);
+        
+        setFilterOptions(prev => ({
+          ...prev,
+          programs: programsData.map(program => ({
+            id: program._id,
+            name: program.name || program.programName || program.title,
+            code: program.code || program.programCode,
+            description: program.description
+          }))
+        }));
+      } else {
+        console.error('Failed to load programs');
+      }
+
+    } catch (error) {
+      console.error('Error loading filter options:', error);
+    } finally {
+      setLoadingOptions(false);
+    }
+  };
+
+  const loadCoursesForProgram = async (programId) => {
+    try {
+      console.log('Loading courses for program:', programId);
+      
+      const coursesResponse = await fetch(`http://localhost:3001/api/programs/${programId}/courses`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (coursesResponse.ok) {
+        const coursesData = await coursesResponse.json();
+        console.log('Loaded courses:', coursesData);
+        
+        setFilterOptions(prev => ({
+          ...prev,
+          courses: coursesData.map(course => ({
+            id: course._id,
+            code: course.code || course.courseCode,
+            name: course.name || course.courseName || course.title,
+            description: course.description
+          }))
+        }));
+      } else {
+        console.error('Failed to load courses for program:', programId);
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    }
+  };
+
+  /*const loadAllUsers = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch('http://localhost:3001/api/search/users/all', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUsers(userData);
+      } else {
+        console.error('Failed to load users');
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchUsers = async (searchFilters = {}) => {
+    try {
+      setLoading(true);
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      Object.entries(searchFilters).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          params.append(key, value);
+        }
+      });
+
+      const response = await fetch(`http://localhost:3001/api/search/users?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUsers(userData);
+      } else {
+        console.error('Search failed');
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+*/
+
+const loadAllUsers = async () => {
+  console.log('📥 loadAllUsers called');
+  
+  // Prevent multiple simultaneous loads
+  if (loading) {
+    console.log('⚠️ Already loading, skipping...');
+    return;
+  }
+  
+  try {
+    setLoading(true);
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('❌ No token found');
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+    
+    const response = await fetch('http://localhost:3001/api/search/users/all', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      console.log('✅ Loaded', userData.length, 'users');
+      setUsers(userData);
+    } else {
+      console.error('❌ Failed to load users:', response.status);
+      setUsers([]);
+    }
+  } catch (error) {
+    console.error('❌ Error loading users:', error);
+    setUsers([]);
+  } finally {
+    // ALWAYS set loading to false
+    setLoading(false);
+    console.log('📥 loadAllUsers completed');
+  }
+};
+
+const searchUsers = async (searchFilters = {}) => {
+  console.log('🔍 searchUsers called with filters:', searchFilters);
+  
+  // Prevent multiple simultaneous searches
+  if (loading) {
+    console.log('⚠️ Already loading, skipping search...');
+    return;
+  }
+  
+  try {
+    setLoading(true);
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('❌ No token found');
+      setUsers([]);
+      setLoading(false);
+      return;
+    }
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    Object.entries(searchFilters).forEach(([key, value]) => {
+      if (value && value.toString().trim()) {
+        params.append(key, value);
+      }
+    });
+
+    const url = `http://localhost:3001/api/search/users?${params.toString()}`;
+    console.log('🔍 Fetching:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      console.log('✅ Search found', userData.length, 'users');
+      setUsers(userData);
+    } else {
+      console.error('❌ Search failed:', response.status);
+      setUsers([]);
+    }
+  } catch (error) {
+    console.error('❌ Error searching users:', error);
+    setUsers([]);
+  } finally {
+    // ALWAYS set loading to false
+    setLoading(false);
+    console.log('🔍 searchUsers completed');
+  }
+};
+
+/*// Also update your useEffect to prevent infinite loops
+// Replace the existing useEffect that calls loadAllUsers with this:
+useEffect(() => {
+  console.log('📍 Initial load effect triggered');
+  let mounted = true;
+  
+  const loadInitialData = async () => {
+    if (mounted) {
+      await loadFilterOptions();
+      await loadAllUsers();
+    }
+  };
+  
+  loadInitialData();
+  
+  // Cleanup function
+  return () => {
+    mounted = false;
+    console.log('🧹 Component unmounting, cleanup done');
+  };
+}, []); // Empty dependency array - only run once on mount
+
+// Update the useEffect for loading courses to prevent issues
+useEffect(() => {
+  console.log('📚 Program changed:', selectedProgramId);
+  let mounted = true;
+  
+  if (selectedProgramId && mounted) {
+    loadCoursesForProgram(selectedProgramId);
+  } else if (mounted) {
+    setFilterOptions(prev => ({ ...prev, courses: [] }));
+  }
+  
+  return () => {
+    mounted = false;
+  };
+}, [selectedProgramId]);
+
+// Add a loading timeout to prevent infinite loading
+useEffect(() => {
+  if (loading) {
+    const timeout = setTimeout(() => {
+      console.error('⏰ Loading timeout - forcefully stopping');
+      setLoading(false);
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timeout);
+  }
+}, [loading]);*/
+// Initial load effect
+useEffect(() => {
+  console.log('📍 Initial load effect triggered');
+  let mounted = true;
+
+  const loadInitialData = async () => {
+    try {
+      setLoading(true); // Start loading
+      await loadFilterOptions();
+      await loadAllUsers();
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      if (mounted) {
+        setLoading(false); // Stop loading only if still mounted
+      }
+    }
+  };
+
+  loadInitialData();
+
+  // Cleanup function
+  return () => {
+    mounted = false;
+    console.log('🧹 Component unmounting, cleanup done');
+  };
+}, []); // Empty dependency array - only run once on mount
+
+// Effect for loading courses
+useEffect(() => {
+  console.log('📚 Program changed:', selectedProgramId);
+  let mounted = true;
+
+  const loadCourses = async () => {
+    if (selectedProgramId && mounted) {
+      try {
+        await loadCoursesForProgram(selectedProgramId);
+      } catch (error) {
+        console.error('Error loading courses:', error);
+      }
+    } else if (mounted) {
+      setFilterOptions(prev => ({ ...prev, courses: [] }));
+    }
+  };
+
+  loadCourses();
+
+  return () => {
+    mounted = false;
+  };
+}, [selectedProgramId]);
+
+// Loading timeout effect
+useEffect(() => {
+  if (loading) {
+    const timeout = setTimeout(() => {
+      console.error('⏰ Loading timeout - forcefully stopping');
+      setLoading(false);
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }
+}, [loading]);
+
+// Also add this test function you can call from browser console
+window.testAuth = async () => {
+  const token = localStorage.getItem('token');
+  console.log('Testing authentication...');
+  console.log('Token from localStorage:', token);
+  
+  if (!token) {
+    console.error('No token found!');
+    return;
+  }
+  
+  try {
+    // Test basic auth
+    const response = await fetch('http://localhost:3001/api/test-auth', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Auth test passed:', data);
+    } else {
+      console.error('❌ Auth test failed:', response.status);
+      const error = await response.text();
+      console.error('Error:', error);
+    }
+    
+    // Test search endpoint
+    const searchResponse = await fetch('http://localhost:3001/api/search/users/all', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    console.log('Search endpoint status:', searchResponse.status);
+    if (!searchResponse.ok) {
+      const error = await searchResponse.text();
+      console.error('Search error:', error);
+    }
+  } catch (err) {
+    console.error('Test failed:', err);
+  }
+};
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Handle program selection
+    if (field === 'program') {
+      const selectedProgram = filterOptions.programs.find(p => p.name === value);
+      setSelectedProgramId(selectedProgram ? selectedProgram.id : '');
+      
+      // Clear course selection when program changes
+      setFilters(prev => ({
+        ...prev,
+        courseCode: '',
+        courseName: ''
+      }));
+    }
+  };
+
+  const handleCourseSelection = (courseField, value) => {
+    if (courseField === 'courseCode') {
+      const selectedCourse = filterOptions.courses.find(c => c.id === value);
+      setFilters(prev => ({
+        ...prev,
+        courseCode: value,
+        courseName: selectedCourse ? selectedCourse.name : ''
+      }));
+    } else if (courseField === 'courseName') {
+      const selectedCourse = filterOptions.courses.find(c => c.name === value);
+      setFilters(prev => ({
+        ...prev,
+        courseName: value,
+        courseCode: selectedCourse ? selectedCourse.id : ''
+      }));
+    }
+  };
+
+  const handleSearch = () => {
+    const searchParams = {};
+    
+    // Build search parameters based on search type
+    if (filters.searchTerm) {
+      switch (filters.searchBy) {
+        case 'name':
+          searchParams.q = filters.searchTerm;
+          break;
+        case 'email':
+          searchParams.email = filters.searchTerm;
+          break;
+        case 'program':
+          searchParams.program = filters.searchTerm;
+          break;
+        case 'course':
+          searchParams.course = filters.searchTerm;
+          break;
+      }
+    }
+    
+    // Add other filters
+    if (filters.role) searchParams.role = filters.role;
+    if (filters.program) searchParams.program = filters.program;
+    if (filters.year) searchParams.year = filters.year;
+    if (filters.courseCode) searchParams.courseCode = filters.courseCode;
+    if (filters.courseName) searchParams.courseName = filters.courseName;
+    
+    searchUsers(searchParams);
+  };
+
+  const handleReset = () => {
+    setFilters({
+      searchTerm: '',
+      searchBy: 'name',
+      role: '',
+      program: '',
+      year: '',
+      courseCode: '',
+      courseName: ''
+    });
+    setSelectedProgramId('');
+    loadAllUsers();
+  };
+
+  const sendMessage = async (targetUser) => {
+    try {
+      setSendingMessage(prev => ({ ...prev, [targetUser.id]: true }));
+      
+      const currentUserId = localStorage.getItem('userId');
+      const chatId = `direct_${Math.min(currentUserId, targetUser.id)}_${Math.max(currentUserId, targetUser.id)}`;
+      
+      const response = await fetch('http://localhost:3001/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chatId: chatId,
+          text: `Hi ${targetUser.firstName}! I found you through the browse page and would love to connect.`,
+          type: 'text'
+        })
+      });
+
+      if (response.ok) {
+        alert(`Message sent to ${targetUser.firstName}! Redirecting to chat...`);
+        navigate('/chat');
+      } else {
+        throw new Error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setSendingMessage(prev => ({ ...prev, [targetUser.id]: false }));
+    }
+  };
+
+  const viewProfile = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/search/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const profile = await response.json();
+        // You can implement a modal or navigate to a profile page
+        console.log('User profile:', profile);
+        alert(`Profile: ${profile.name}\nProgram: ${profile.program}\nEmail: ${profile.email}`);
+      } else {
+        throw new Error('Failed to load profile');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      alert('Failed to load profile. Please try again.');
+    }
+  };
+
+  const sortUsers = (users, sortBy) => {
+    return [...users].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+        case 'role':
+          return a.role.localeCompare(b.role);
+        case 'email':
+          return a.email.localeCompare(b.email);
+        case 'program':
+          return (a.program || '').localeCompare(b.program || '');
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const sortedUsers = sortUsers(users, sortBy);
+
+  const getRoleIcon = (role) => {
+    switch (role) {
+      case 'Student': return '🎓';
+      case 'Mentor': return '👨‍🏫';
+      case 'Alumni': return '🎖️';
+      default: return '👤';
+    }
+  };
+
+  const getRoleBadgeClass = (role) => {
+    switch (role) {
+      case 'Mentor': return 'mentor';
+      case 'Alumni': return 'alumni';
+      default: return '';
+    }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.section}>
-        {role === "Student" ? (
-          <>
-            <div style={styles.heading}>🔍 Search Campus Community</div>
-            <div style={styles.searchContainer}>
-              <input
-                type="text"
-                placeholder="Search by name or keyword"
-                style={styles.searchInput}
-              />
-              <select style={styles.dropdown}>
-                <option>Program</option>
+    <div className="browse-container">
+      <div className="browse-wrapper">
+        {/* Header */}
+        <div className="browse-header">
+          <h1 className="browse-title">
+            {role === 'Student' ? '🔍 Discover Your Campus Community' : '🌟 Find Students to Mentor'}
+          </h1>
+          <p className="browse-subtitle">
+            {role === 'Student' 
+              ? 'Connect with mentors, alumni, and fellow students' 
+              : 'Discover talented students looking for guidance'}
+          </p>
+        </div>
+
+        {/* Search Section */}
+        <div className="search-section">
+          <div className="search-header">
+            <span className="search-icon">🔍</span>
+            <h2 className="search-label">Advanced Search</h2>
+          </div>
+          
+          <div className="search-form">
+            {/* Primary Search Row */}
+            <div className="search-row">
+              <div className="search-group">
+                <label><span className="emoji">🔍</span> Search Term</label>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Enter search term..."
+                  value={filters.searchTerm}
+                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                />
+              </div>
+              
+              <div className="search-group">
+                <label><span className="emoji">📋</span> Search By</label>
+                <select
+                  className="search-select"
+                  value={filters.searchBy}
+                  onChange={(e) => handleFilterChange('searchBy', e.target.value)}
+                >
+                  <option value="name">Name</option>
+                  <option value="email">Email</option>
+                  <option value="program">Program</option>
+                  <option value="course">Course</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filter Row */}
+            <div className="search-row">
+              <div className="search-group">
+                <label><span className="emoji">👤</span> Role</label>
+                <select
+                  className="search-select"
+                  value={filters.role}
+                  onChange={(e) => handleFilterChange('role', e.target.value)}
+                >
+                  <option value="">All Roles</option>
+                  {filterOptions.roles.map(role => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="search-group">
+                <label><span className="emoji">📚</span> Program</label>
+                <select
+                  className="search-select"
+                  value={filters.program}
+                  onChange={(e) => handleFilterChange('program', e.target.value)}
+                  disabled={loadingOptions}
+                >
+                  <option value="">All Programs</option>
+                  {filterOptions.programs.map(program => (
+                    <option key={program.id} value={program.name}>
+                      {program.name} {program.code ? `(${program.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="search-group">
+                <label><span className="emoji">📅</span> Year</label>
+                <select
+                  className="search-select"
+                  value={filters.year}
+                  onChange={(e) => handleFilterChange('year', e.target.value)}
+                >
+                  <option value="">All Years</option>
+                  {filterOptions.years.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Course Search Row */}
+            <div className="search-row">
+              <div className="search-group">
+                <label><span className="emoji">📖</span> Course Code</label>
+                <select
+                  className="search-select"
+                  value={filters.courseCode}
+                  onChange={(e) => handleCourseSelection('courseCode', e.target.value)}
+                  disabled={!selectedProgramId || filterOptions.courses.length === 0}
+                >
+                  <option value="">
+                    {!selectedProgramId ? 'Select a program first' : 
+                     filterOptions.courses.length === 0 ? 'No courses available' : 'All Course Codes'}
+                  </option>
+                  {filterOptions.courses.map(course => (
+                    <option key={course.id} value={course.id}>
+                      {course.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="search-group">
+                <label><span className="emoji">📝</span> Course Name</label>
+                <select
+                  className="search-select"
+                  value={filters.courseName}
+                  onChange={(e) => handleCourseSelection('courseName', e.target.value)}
+                  disabled={!selectedProgramId || filterOptions.courses.length === 0}
+                >
+                  <option value="">
+                    {!selectedProgramId ? 'Select a program first' : 
+                     filterOptions.courses.length === 0 ? 'No courses available' : 'All Course Names'}
+                  </option>
+                  {filterOptions.courses.map(course => (
+                    <option key={course.id} value={course.name}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Show selected course info */}
+              {filters.courseCode && filters.courseName && (
+                <div className="search-group">
+                  <label><span className="emoji">ℹ️</span> Selected Course</label>
+                  <div className="course-info">
+                    <strong>{filters.courseCode}</strong>: {filters.courseName}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="search-buttons">
+              <button className="btn btn-primary" onClick={handleSearch}>
+                🔍 Search Users
+              </button>
+              <button className="btn btn-secondary" onClick={handleReset}>
+                🔄 Reset Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Results Section */}
+        <div className="results-section">
+          <div className="results-header">
+            <h3 className="results-title">
+              👥 Search Results
+              <span className="results-count">{sortedUsers.length} found</span>
+            </h3>
+            
+            <div className="sort-controls">
+              <label htmlFor="sort">Sort by:</label>
+              <select
+                id="sort"
+                className="sort-dropdown"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="name">Name</option>
+                <option value="role">Role</option>
+                <option value="email">Email</option>
+                <option value="program">Program</option>
               </select>
-              <select style={styles.dropdown}>
-                <option>Year</option>
-              </select>
-              <select style={styles.dropdown}>
-                <option>Role</option>
-              </select>
             </div>
+          </div>
 
-            <div style={styles.sectionTitle}>👥 Top Results</div>
-
-            <div style={styles.card}>
-              <div style={styles.infoBox}>
-                <div style={styles.name}>🎓 Emily Watson</div>
-                <div style={styles.meta}>
-                  Student | BBA | 2025 | Interests: Marketing, Startups
-                </div>
+          <div className="results-grid">
+            {loading ? (
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Searching for users...</p>
               </div>
-              <button style={styles.button}>Send Message</button>
-            </div>
-
-            <div style={styles.card}>
-              <div style={styles.infoBox}>
-                <div style={styles.name}>👨‍🏫 Prof. Ali</div>
-                <div style={styles.meta}>
-                  Mentor | KPU Mentor Program | 2024 | Topics: Web Dev, Career
-                  Guidance
-                </div>
+            ) : sortedUsers.length === 0 ? (
+              <div className="no-results-container">
+                <div className="no-results-icon">🔍</div>
+                <h3>No users found</h3>
+                <p>Try adjusting your search filters or search terms.</p>
               </div>
-              <button style={styles.button}>Send Message</button>
-            </div>
-
-            <div style={styles.card}>
-              <div style={styles.infoBox}>
-                <div style={styles.name}>🎓 John Smith</div>
-                <div style={styles.meta}>
-                  Alumni | BSc Computer Science | 2022 | Interests: AI, Cloud
-                  Computing
+            ) : (
+              sortedUsers.map((user) => (
+                <div key={user.id} className="user-card">
+                  <div className="user-header">
+                    <div className="user-info">
+                      <h4 className="user-name">
+                        {getRoleIcon(user.role)} {user.firstName} {user.lastName}
+                        <span className={`user-role-badge ${getRoleBadgeClass(user.role)}`}>
+                          {user.role}
+                        </span>
+                      </h4>
+                      <p className="user-email">✉️ {user.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="user-details">
+                    {user.program && (
+                      <div className="detail-item">
+                        <span className="detail-icon">📚</span>
+                        <span>Program: {user.program}</span>
+                      </div>
+                    )}
+                    {user.year && (
+                      <div className="detail-item">
+                        <span className="detail-icon">📅</span>
+                        <span>Year: {user.year}</span>
+                      </div>
+                    )}
+                    {user.courseCode && (
+                      <div className="detail-item">
+                        <span className="detail-icon">📖</span>
+                        <span>Course: {user.courseCode}</span>
+                      </div>
+                    )}
+                    {user.interests && (
+                      <div className="detail-item">
+                        <span className="detail-icon">💡</span>
+                        <span>Interests: {user.interests}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="user-actions">
+                    <button
+                      className="btn-message"
+                      onClick={() => sendMessage(user)}
+                      disabled={sendingMessage[user.id]}
+                    >
+                      {sendingMessage[user.id] ? '⏳ Sending...' : '💬 Send Message'}
+                    </button>
+                    <button 
+                      className="btn-profile"
+                      onClick={() => viewProfile(user.id)}
+                    >
+                      👤 View Profile
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <button style={styles.button}>Send Message</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={styles.heading}>
-              🔎 Browse Students Looking for Mentorship
-            </div>
-
-            <div style={styles.card}>
-              <div style={styles.infoBox}>
-                <div style={styles.name}>👩‍🎓 Jasleen Kaur</div>
-                <div style={styles.meta}>
-                  BSc Computer Science | Year: 2025 | Interests: Web Dev,
-                  Internships
-                </div>
-              </div>
-              <button style={styles.button}>📩 Send Message</button>
-            </div>
-
-            <div style={styles.card}>
-              <div style={styles.infoBox}>
-                <div style={styles.name}>👨‍🎓 Harsh Mehta</div>
-                <div style={styles.meta}>
-                  BBA Marketing | Year: 2024 | Interests: Branding, Startups
-                </div>
-              </div>
-              <button style={styles.button}>📩 Send Message</button>
-            </div>
-
-            <div style={styles.card}>
-              <div style={styles.infoBox}>
-                <div style={styles.name}>👩‍🎓 Mandeep Singh</div>
-                <div style={styles.meta}>
-                  BA Psychology | Year: 2026 | Interests: Counseling, Student
-                  Life
-                </div>
-              </div>
-              <button style={styles.button}>📩 Send Message</button>
-            </div>
-          </>
-        )}
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

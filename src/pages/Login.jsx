@@ -25,7 +25,7 @@ function Login() {
 
     try {
       // First, perform login to get JWT token
-      const loginRes = await fetch('http://localhost:5000/api/users/login', {
+      const loginRes = await fetch('http://localhost:3001/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -43,7 +43,7 @@ function Login() {
       if (loginData.user) localStorage.setItem('user', JSON.stringify(loginData.user));
 
       // Fetch user info using the token
-      const userInfoRes = await fetch('http://localhost:5000/api/userProfile/current', {
+      const userInfoRes = await fetch('http://localhost:3001/api/userProfile/current', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
