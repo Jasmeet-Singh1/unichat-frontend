@@ -43,7 +43,7 @@ function Login() {
       if (loginData.user) localStorage.setItem('user', JSON.stringify(loginData.user));
 
       // Fetch user info using the token
-      const userInfoRes = await fetch('http://localhost:5000/api/users/user-info', {
+      const userInfoRes = await fetch('http://localhost:5000/api/userProfile/current', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
