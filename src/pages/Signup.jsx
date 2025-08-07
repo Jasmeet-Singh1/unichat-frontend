@@ -45,14 +45,14 @@ const Signup = () => {
       clubs: [],
       club: '',
       designation: '',
-      courseExpertise: [
-        {
-          course: '',
-          topicsCovered: '',
-          grade: '',
-          instructor: '',
-        },
-      ],
+      
+      // NEW: Separate current form fields from saved expertise
+      savedCourseExpertise: [], // This stores the completed expertise entries
+      currentCourse: '',
+      currentTopics: '',
+      currentGrade: '',
+      currentInstructor: '',
+      
       topicCovered: '',
       availabilityDays: [],
       availabilityFrom: '',
@@ -109,7 +109,7 @@ const Signup = () => {
       formData.role === 'Student'
         ? ['gradDate']
         : formData.role === 'Mentor'
-        ? ['courseExpertise', 'course', 'topicCovered']
+        ? ['savedCourseExpertise']
         : formData.role === 'Alumni'
         ? ['alumniProof']
         : [],
@@ -125,14 +125,20 @@ const Signup = () => {
   const validateFields = async () => {
     const fieldsToCheck = requiredFieldsByStep[step] || [];
     for (let field of fieldsToCheck) {
-      if (!formData[field]) {
+      if (field === 'savedCourseExpertise') {
+        if (!formData.savedCourseExpertise || formData.savedCourseExpertise.length === 0) {
+          alert('Please add at least one course expertise.');
+          return false;
+        }
+      } else if (!formData[field]) {
         alert(`${field.replace(/([A-Z])/g, ' $1').trim()} is required.`);
         return false;
       }
     }
     if (step === 2) {
       try {
-        const response = await fetch('http://localhost:5000/api/users/register', {
+        const endpoint = 'http://localhost:5000/api/users/register';
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -301,11 +307,26 @@ const Signup = () => {
           }));
         }
       } else {
-        setFormData((prev) => ({
-          ...prev,
-          [name]: type === 'file' ? files[0] : value,
+        if (type === 'file') {
+    const file = files[0];
+    console.log('📄 File selected for field:', name);
+    console.log('📄 File object:', file);
+    console.log('📄 File name:', file?.name);
+    console.log('📄 File size:', file?.size);
+    console.log('📄 File type:', file?.type);
+    
+    setFormData((prev) => ({
+      ...prev,
+      [name]: file, // Store the actual file object
+    }));
+  } else {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+
         }));
       }
+    }
     }
   };
 
@@ -348,18 +369,6 @@ const Signup = () => {
     }));
   };
 
-  const addExpertise = () => {
-    setFormData((prev) => ({
-      ...prev,
-      courseExpertise: [...prev.courseExpertise, { course: '', topicsCovered: '', grade: '', instructor: '' }],
-    }));
-  };
-
-  const removeExpertise = (index) => {
-    const updated = formData.courseExpertise.filter((_, i) => i !== index);
-    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
-  };
-
   const handleClubChange = (e) => {
     const selectedClub = e.target.value;
     setFormData((prev) => ({
@@ -397,7 +406,7 @@ const Signup = () => {
 
   const verifyOtp = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const response = await fetch('http://localhost:5000/api/users/verify-otp-only', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -414,7 +423,7 @@ const Signup = () => {
       }
 
       alert('Email verified successfully!');
-      setFormData((prev) => ({ ...prev, otp: '' }));
+      setFormData((prev) => ({ ...prev, otp: '', isEmailVerified: true }));
       setStep(3);
     } catch (err) {
       console.error('OTP verification error:', err);
@@ -423,42 +432,158 @@ const Signup = () => {
   };
 
   const submitProfile = async () => {
-    try {
-      if (formData.role === 'Student') {
-        const response = await fetch('http://localhost:5000/api/auth/complete-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: formData.email,
-            bio: formData.bio,
-            programType: formData.programType,
-            program: formData.program,
-            coursesEnrolled: formData.enrolledCourses,
-            expectedGradDate: formData.gradDate,
-            studentClubs: formData.clubs,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          alert(result.message || 'Profile completion failed');
-          return;
-        }
-
-        alert('Profile completed successfully!');
-        navigate('/login');
+  try {
+    // Use the same endpoint for ALL roles now
+    console.log(`🎯 Creating ${formData.role} account...`);
+    console.log('📧 Email:', formData.email);
+    
+    let requestData;
+    
+    if (formData.role === 'Student') {
+      requestData = {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role,
+        username: formData.username,
+        password: formData.password,
+        bio: formData.bio,
+        program: formData.program,
+        programType: formData.programType,
+        coursesEnrolled: formData.enrolledCourses,
+        expectedGradDate: formData.gradDate,
+        courseExpertise: [], // Empty for students
+        availability: [], // Empty for students
+        proof: [], // Empty for students
+        overallGPA: formData.overallGPA,
+        gradDate: formData.gradDate,
+        currentJob: null,
+        studentClubs: formData.clubs
+      };
+    } else {
+      // Mentor/Alumni data (existing code)
+      let proofValue = null;
+      if (formData.mentorProof && formData.mentorProof.name) {
+        proofValue = formData.mentorProof.name;
+      } else if (formData.alumniProof && formData.alumniProof.name) {
+        proofValue = formData.alumniProof.name;
       }
-    } catch (error) {
-      console.error('Error completing profile:', error);
-      alert('Something went wrong while submitting your profile.');
+      
+      requestData = {
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role,
+        username: formData.username,
+        password: formData.password,
+        bio: formData.bio,
+        program: formData.program,
+        programType: formData.programType,
+        coursesEnrolled: formData.enrolledCourses,
+        expectedGradDate: formData.gradDate,
+        courseExpertise: formData.savedCourseExpertise,
+        availability: availabilityList,
+        proof: proofValue ? [proofValue] : [],
+        overallGPA: formData.overallGPA,
+        gradDate: formData.alumniGradDate,
+        currentJob: {
+          company: formData.jobCompany,
+          title: formData.jobTitle,
+          startDate: formData.jobStart
+        }
+      };
     }
+
+    console.log('📦 Request data:', JSON.stringify(requestData, null, 2));
+    
+    // Use the same endpoint for all roles
+     const response = await fetch('http://localhost:5000/api/users/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData),
+    });
+
+    const result = await response.json();
+    console.log('📋 Response status:', response.status);
+    console.log('📋 Response:', result);
+
+    if (!response.ok) {
+      alert(result.message || 'Account creation failed');
+      console.error('Account creation error:', result);
+      return;
+    }
+
+    // Success message based on role
+    if (formData.role === 'Student') {
+      alert('Student account created successfully!');
+    } else {
+      alert(formData.role === 'Mentor' 
+        ? 'Mentor request submitted. You will be notified after approval.' 
+        : 'Alumni request submitted. You will be notified after approval.');
+    }
+    
+    navigate('/login');
+
+  } catch (error) {
+    console.error('Error submitting profile:', error);
+    alert('Something went wrong while submitting your profile.');
+  }
+};
+
+  // NEW functions for handling course expertise properly
+  const addCurrentExpertise = () => {
+    const { currentCourse, currentTopics, currentGrade, currentInstructor } = formData;
+    
+    // Validation
+    if (!currentCourse || !currentTopics || !currentGrade) {
+      alert('Please fill in Course, Topics Covered, and Grade (all required fields)');
+      return;
+    }
+
+    // Check if this course is already added
+    const existingCourse = formData.savedCourseExpertise.find(exp => exp.course === currentCourse);
+    if (existingCourse) {
+      alert('You have already added expertise for this course. Please select a different course.');
+      return;
+    }
+
+    // Add the course expertise to saved list
+    const newExpertise = {
+      course: currentCourse,
+      topicsCovered: currentTopics,
+      grade: currentGrade,
+      instructor: currentInstructor || ''
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      savedCourseExpertise: [...prev.savedCourseExpertise, newExpertise],
+      // Clear current form
+      currentCourse: '',
+      currentTopics: '',
+      currentGrade: '',
+      currentInstructor: ''
+    }));
+
+    console.log('✅ Course expertise added:', newExpertise);
+    alert('Course expertise added successfully!');
   };
 
-  const handleCourseExpertiseChange = (index, field, value) => {
-    const updated = [...formData.courseExpertise];
-    updated[index][field] = value;
-    setFormData((prev) => ({ ...prev, courseExpertise: updated }));
+  const clearCurrentExpertise = () => {
+    setFormData((prev) => ({
+      ...prev,
+      currentCourse: '',
+      currentTopics: '',
+      currentGrade: '',
+      currentInstructor: ''
+    }));
+  };
+
+  const removeSavedExpertise = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      savedCourseExpertise: prev.savedCourseExpertise.filter((_, i) => i !== index)
+    }));
   };
 
   console.log('data', programs);
@@ -656,7 +781,7 @@ const Signup = () => {
                   <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
                     <option value=''>Select Course</option>
                     {courses.map((course) => (
-                      <option value={course._id}>{course.name}</option>
+                      <option key={course._id} value={course._id}>{course.name}</option>
                     ))}
                   </select>
                 </div>
@@ -762,7 +887,7 @@ const Signup = () => {
                     </span>
                   </label>
                   <Tooltip id='club-tooltip' content='Select a club you are part of' />
-                  <select name='club' value={formData.club} onChange={handleChange} required>
+                  <select name='club' value={formData.club} onChange={handleClubChange} required>
                     <option value=''>Select Club</option>
                     {availableClubs.map((club) => (
                       <option key={club._id} value={club._id}>
@@ -807,14 +932,38 @@ const Signup = () => {
             {formData.role === 'Mentor' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
-                {formData.courseExpertise.map((expertise, index) => (
-                  <div key={index} className='expertise-block'>
+                
+                {/* Show list of saved course expertise */}
+                {formData.savedCourseExpertise && formData.savedCourseExpertise.length > 0 && (
+                  <div className='saved-expertise'>
+                    <h3>Added Course Expertise:</h3>
+                    {formData.savedCourseExpertise.map((expertise, index) => (
+                      <div key={index} className='expertise-box'>
+                        <strong>Course:</strong> {courses.find(c => c._id === expertise.course)?.name || expertise.course}
+                        <br />
+                        <strong>Topics:</strong> {expertise.topicsCovered}
+                        <br />
+                        <strong>Grade:</strong> {expertise.grade}
+                        <br />
+                        <strong>Instructor:</strong> {expertise.instructor || 'N/A'}
+                        <button type='button' onClick={() => removeSavedExpertise(index)} className='remove-button'>
+                          ❌ Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Current form for adding new expertise */}
+                <div className='current-expertise-form'>
+                  <h3>Add Course Expertise:</h3>
+                  <div className='expertise-block'>
                     <div className='input-group'>
                       <label>Course*</label>
                       <select
-                        name='course'
-                        value={expertise.course}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'course', e.target.value)}
+                        name='currentCourse'
+                        value={formData.currentCourse || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, currentCourse: e.target.value }))}
                         required
                       >
                         <option value=''>Select Course</option>
@@ -829,16 +978,17 @@ const Signup = () => {
                       <label>Topics Covered*</label>
                       <input
                         type='text'
-                        value={expertise.topicsCovered}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'topicsCovered', e.target.value)}
+                        value={formData.currentTopics || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, currentTopics: e.target.value }))}
+                        placeholder='e.g., Data Structures, Algorithms, OOP'
                         required
                       />
                     </div>
                     <div className='input-group'>
                       <label>Grade*</label>
                       <select
-                        value={expertise.grade}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'grade', e.target.value)}
+                        value={formData.currentGrade || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, currentGrade: e.target.value }))}
                         required
                       >
                         <option value=''>Select Grade</option>
@@ -852,18 +1002,23 @@ const Signup = () => {
                       <label>Instructor</label>
                       <input
                         type='text'
-                        value={expertise.instructor}
-                        onChange={(e) => handleCourseExpertiseChange(index, 'instructor', e.target.value)}
+                        value={formData.currentInstructor || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, currentInstructor: e.target.value }))}
+                        placeholder='Instructor name (optional)'
                       />
                     </div>
-                    <button type='button' onClick={() => removeExpertise(index)}>
-                      Remove
-                    </button>
+                    
+                    {/* Manual Add Button */}
+                    <div className='button-group-expertise'>
+                      <button type='button' onClick={addCurrentExpertise} className='add-button'>
+                        ✅ Add This Course Expertise
+                      </button>
+                      <button type='button' onClick={clearCurrentExpertise} className='clear-button'>
+                        🔄 Clear Form
+                      </button>
+                    </div>
                   </div>
-                ))}
-                <button type='button' onClick={addExpertise}>
-                  Add More
-                </button>
+                </div>
               </div>
             )}
             {formData.role === 'Mentor' && step === 6 && (
