@@ -19,6 +19,7 @@ const Chat = ({
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -27,8 +28,75 @@ const Chat = ({
   const [loading, setLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState([]);
   const messagesEndRef = useRef(null);
+  // Emoji categories
+  const emojiCategories = {
+    smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳'],
+    people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '👮‍♀️', '👮‍♂️', '👷‍♀️', '👷‍♂️', '💂‍♀️', '💂‍♂️', '🕵️‍♀️', '🕵️‍♂️', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾'],
+    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇'],
+    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🌽', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️'],
+    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️']
+  };
 
-  // Load conversations from backend
+  // Popular emojis for quick access
+  const popularEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '💯', '👏', '🙏', '💪', '🚀', '✨', '💖', '😍'];
+
+  // Request notification permission on component mount
+  useEffect(() => {
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission);
+      });
+    }
+  }, []);
+
+  // Function to show notification
+  const showNotification = (title, body, icon = '💬') => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification(title, {
+        body: body,
+        icon: '/favicon.ico', // You can use your app icon here
+        badge: '/favicon.ico',
+        tag: 'chat-message',
+        requireInteraction: false,
+        silent: false
+      });
+
+      // Auto close after 5 seconds
+      setTimeout(() => notification.close(), 5000);
+
+      // Click to focus window
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    }
+  };
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    // Create a simple notification sound using Web Audio API
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.log('Could not play notification sound:', error);
+    }
+  };
   const loadConversations = React.useCallback(async () => {
     if (!currentUser) return;
     
@@ -588,7 +656,139 @@ const Chat = ({
               borderTop: '1px solid #ddd', 
               padding: '20px'
             }}>
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100px',
+                  right: '20px',
+                  width: '400px',
+                  height: '300px',
+                  backgroundColor: '#fff',
+                  border: '1px solid #ddd',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  zIndex: 1000,
+                  overflow: 'hidden'
+                }}>
+                  {/* Emoji Picker Header */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #eee',
+                    backgroundColor: '#f9f9f9'
+                  }}>
+                    <h4 style={{ margin: 0, fontSize: '16px', color: '#333' }}>Choose Emoji</h4>
+                    <button
+                      onClick={() => setShowEmojiPicker(false)}
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        color: '#666'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Popular Emojis */}
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>
+                      Popular
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {popularEmojis.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            setMessage(prev => prev + emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            fontSize: '20px',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px'
+                          }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* All Emojis */}
+                  <div style={{ 
+                    height: '180px', 
+                    overflowY: 'auto', 
+                    padding: '12px 16px'
+                  }}>
+                    {Object.entries(emojiCategories).map(([category, emojis]) => (
+                      <div key={category} style={{ marginBottom: '16px' }}>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#666', 
+                          marginBottom: '8px', 
+                          fontWeight: 'bold',
+                          textTransform: 'capitalize'
+                        }}>
+                          {category}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
+                          {emojis.map(emoji => (
+                            <button
+                              key={emoji}
+                              onClick={() => {
+                                setMessage(prev => prev + emoji);
+                                setShowEmojiPicker(false);
+                              }}
+                              style={{
+                                border: 'none',
+                                backgroundColor: 'transparent',
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '4px'
+                              }}
+                              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
+                              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {/* Emoji Button */}
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  style={{
+                    padding: '12px',
+                    border: 'none',
+                    backgroundColor: showEmojiPicker ? '#e3f2fd' : '#f0f0f0',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    color: '#666'
+                  }}
+                  title="Add emoji"
+                >
+                  😀
+                </button>
+
                 <div style={{ flex: 1 }}>
                   <input
                     type="text"
