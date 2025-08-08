@@ -6,6 +6,7 @@ import {
   Outlet,
   useLocation,
 } from "react-router-dom";
+import ChatPage from "./pages/Chat";
 import { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -15,7 +16,6 @@ import Logout from "./pages/Logout";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Browse from "./pages/Browse";
-import Chat from "./pages/Chat";
 import Notification from "./pages/Notification";
 import MentorRequest from "./pages/MentorRequest";
 import AlumniDashboard from "./pages/AlumniDashboard";
@@ -125,13 +125,9 @@ function App() {
               }
             />
             <Route
-              path="/chat"
-              element={
-                <WithNavbar role={role}>
-                  <Chat role={role} />
-                </WithNavbar>
-              }
-            />
+  path="/chat"
+  element={<ChatPage role={role} />}
+/>
             <Route
               path="/profile"
               element={

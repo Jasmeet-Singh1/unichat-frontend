@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './browse.css';
 
-
-const Browse = ({ role }) => {
+const Browse = ({ role, currentUser }) => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,15 +20,16 @@ const Browse = ({ role }) => {
   });
 
   const getYearRange = () => {
-  const currentYear = new Date().getFullYear();
-  const startYear = currentYear - 10;
-  const endYear = currentYear + 1;
-  const years = [];
-  for (let y = startYear; y <= endYear; y++) {
-    years.push(y.toString());
-  }
-  return years;
-};
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 10;
+    const endYear = currentYear + 1;
+    const years = [];
+    for (let y = startYear; y <= endYear; y++) {
+      years.push(y.toString());
+    }
+    return years;
+  };
+
   // Dynamic options populated from your APIs
   const [filterOptions, setFilterOptions] = useState({
     programs: [],
@@ -125,325 +124,216 @@ const Browse = ({ role }) => {
     }
   };
 
-  /*const loadAllUsers = async () => {
+  const loadAllUsers = async () => {
+    console.log('📥 loadAllUsers called');
+    
+    // Prevent multiple simultaneous loads
+    if (loading) {
+      console.log('⚠️ Already loading, skipping...');
+      return;
+    }
+    
     try {
       setLoading(true);
       
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ No token found');
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch('http://localhost:3001/api/search/users/all', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         const userData = await response.json();
+        console.log('✅ Loaded', userData.length, 'users');
         setUsers(userData);
       } else {
-        console.error('Failed to load users');
+        console.error('❌ Failed to load users:', response.status);
         setUsers([]);
       }
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('❌ Error loading users:', error);
       setUsers([]);
     } finally {
+      // ALWAYS set loading to false
       setLoading(false);
+      console.log('📥 loadAllUsers completed');
     }
   };
 
   const searchUsers = async (searchFilters = {}) => {
+    console.log('🔍 searchUsers called with filters:', searchFilters);
+    
+    // Prevent multiple simultaneous searches
+    if (loading) {
+      console.log('⚠️ Already loading, skipping search...');
+      return;
+    }
+    
     try {
       setLoading(true);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('❌ No token found');
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
       
       // Build query parameters
       const params = new URLSearchParams();
       Object.entries(searchFilters).forEach(([key, value]) => {
-        if (value && value.trim()) {
+        if (value && value.toString().trim()) {
           params.append(key, value);
         }
       });
 
-      const response = await fetch(`http://localhost:3001/api/search/users?${params.toString()}`, {
+      const url = `http://localhost:3001/api/search/users?${params.toString()}`;
+      console.log('🔍 Fetching:', url);
+
+      const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         const userData = await response.json();
+        console.log('✅ Search found', userData.length, 'users');
         setUsers(userData);
       } else {
-        console.error('Search failed');
+        console.error('❌ Search failed:', response.status);
         setUsers([]);
       }
     } catch (error) {
-      console.error('Error searching users:', error);
+      console.error('❌ Error searching users:', error);
       setUsers([]);
     } finally {
+      // ALWAYS set loading to false
       setLoading(false);
-    }
-  };
-*/
-
-const loadAllUsers = async () => {
-  console.log('📥 loadAllUsers called');
-  
-  // Prevent multiple simultaneous loads
-  if (loading) {
-    console.log('⚠️ Already loading, skipping...');
-    return;
-  }
-  
-  try {
-    setLoading(true);
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('❌ No token found');
-      setUsers([]);
-      setLoading(false);
-      return;
-    }
-    
-    const response = await fetch('http://localhost:3001/api/search/users/all', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      console.log('✅ Loaded', userData.length, 'users');
-      setUsers(userData);
-    } else {
-      console.error('❌ Failed to load users:', response.status);
-      setUsers([]);
-    }
-  } catch (error) {
-    console.error('❌ Error loading users:', error);
-    setUsers([]);
-  } finally {
-    // ALWAYS set loading to false
-    setLoading(false);
-    console.log('📥 loadAllUsers completed');
-  }
-};
-
-const searchUsers = async (searchFilters = {}) => {
-  console.log('🔍 searchUsers called with filters:', searchFilters);
-  
-  // Prevent multiple simultaneous searches
-  if (loading) {
-    console.log('⚠️ Already loading, skipping search...');
-    return;
-  }
-  
-  try {
-    setLoading(true);
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.error('❌ No token found');
-      setUsers([]);
-      setLoading(false);
-      return;
-    }
-    
-    // Build query parameters
-    const params = new URLSearchParams();
-    Object.entries(searchFilters).forEach(([key, value]) => {
-      if (value && value.toString().trim()) {
-        params.append(key, value);
-      }
-    });
-
-    const url = `http://localhost:3001/api/search/users?${params.toString()}`;
-    console.log('🔍 Fetching:', url);
-
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const userData = await response.json();
-      console.log('✅ Search found', userData.length, 'users');
-      setUsers(userData);
-    } else {
-      console.error('❌ Search failed:', response.status);
-      setUsers([]);
-    }
-  } catch (error) {
-    console.error('❌ Error searching users:', error);
-    setUsers([]);
-  } finally {
-    // ALWAYS set loading to false
-    setLoading(false);
-    console.log('🔍 searchUsers completed');
-  }
-};
-
-/*// Also update your useEffect to prevent infinite loops
-// Replace the existing useEffect that calls loadAllUsers with this:
-useEffect(() => {
-  console.log('📍 Initial load effect triggered');
-  let mounted = true;
-  
-  const loadInitialData = async () => {
-    if (mounted) {
-      await loadFilterOptions();
-      await loadAllUsers();
-    }
-  };
-  
-  loadInitialData();
-  
-  // Cleanup function
-  return () => {
-    mounted = false;
-    console.log('🧹 Component unmounting, cleanup done');
-  };
-}, []); // Empty dependency array - only run once on mount
-
-// Update the useEffect for loading courses to prevent issues
-useEffect(() => {
-  console.log('📚 Program changed:', selectedProgramId);
-  let mounted = true;
-  
-  if (selectedProgramId && mounted) {
-    loadCoursesForProgram(selectedProgramId);
-  } else if (mounted) {
-    setFilterOptions(prev => ({ ...prev, courses: [] }));
-  }
-  
-  return () => {
-    mounted = false;
-  };
-}, [selectedProgramId]);
-
-// Add a loading timeout to prevent infinite loading
-useEffect(() => {
-  if (loading) {
-    const timeout = setTimeout(() => {
-      console.error('⏰ Loading timeout - forcefully stopping');
-      setLoading(false);
-    }, 10000); // 10 second timeout
-    
-    return () => clearTimeout(timeout);
-  }
-}, [loading]);*/
-// Initial load effect
-useEffect(() => {
-  console.log('📍 Initial load effect triggered');
-  let mounted = true;
-
-  const loadInitialData = async () => {
-    try {
-      setLoading(true); // Start loading
-      await loadFilterOptions();
-      await loadAllUsers();
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    } finally {
-      if (mounted) {
-        setLoading(false); // Stop loading only if still mounted
-      }
+      console.log('🔍 searchUsers completed');
     }
   };
 
-  loadInitialData();
+  // Initial load effect
+  useEffect(() => {
+    console.log('📍 Initial load effect triggered');
+    let mounted = true;
 
-  // Cleanup function
-  return () => {
-    mounted = false;
-    console.log('🧹 Component unmounting, cleanup done');
-  };
-}, []); // Empty dependency array - only run once on mount
-
-// Effect for loading courses
-useEffect(() => {
-  console.log('📚 Program changed:', selectedProgramId);
-  let mounted = true;
-
-  const loadCourses = async () => {
-    if (selectedProgramId && mounted) {
+    const loadInitialData = async () => {
       try {
-        await loadCoursesForProgram(selectedProgramId);
+        setLoading(true); // Start loading
+        await loadFilterOptions();
+        await loadAllUsers();
       } catch (error) {
-        console.error('Error loading courses:', error);
+        console.error('Error loading initial data:', error);
+      } finally {
+        if (mounted) {
+          setLoading(false); // Stop loading only if still mounted
+        }
       }
-    } else if (mounted) {
-      setFilterOptions(prev => ({ ...prev, courses: [] }));
+    };
+
+    loadInitialData();
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+      console.log('🧹 Component unmounting, cleanup done');
+    };
+  }, []); // Empty dependency array - only run once on mount
+
+  // Effect for loading courses
+  useEffect(() => {
+    console.log('📚 Program changed:', selectedProgramId);
+    let mounted = true;
+
+    const loadCourses = async () => {
+      if (selectedProgramId && mounted) {
+        try {
+          await loadCoursesForProgram(selectedProgramId);
+        } catch (error) {
+          console.error('Error loading courses:', error);
+        }
+      } else if (mounted) {
+        setFilterOptions(prev => ({ ...prev, courses: [] }));
+      }
+    };
+
+    loadCourses();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedProgramId]);
+
+  // Loading timeout effect
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        console.error('⏰ Loading timeout - forcefully stopping');
+        setLoading(false);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [loading]);
+
+  // Also add this test function you can call from browser console
+  window.testAuth = async () => {
+    const token = localStorage.getItem('token');
+    console.log('Testing authentication...');
+    console.log('Token from localStorage:', token);
+    
+    if (!token) {
+      console.error('No token found!');
+      return;
+    }
+    
+    try {
+      // Test basic auth
+      const response = await fetch('http://localhost:3001/api/test-auth', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Auth test passed:', data);
+      } else {
+        console.error('❌ Auth test failed:', response.status);
+        const error = await response.text();
+        console.error('Error:', error);
+      }
+      
+      // Test search endpoint
+      const searchResponse = await fetch('http://localhost:3001/api/search/users/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Search endpoint status:', searchResponse.status);
+      if (!searchResponse.ok) {
+        const error = await searchResponse.text();
+        console.error('Search error:', error);
+      }
+    } catch (err) {
+      console.error('Test failed:', err);
     }
   };
 
-  loadCourses();
-
-  return () => {
-    mounted = false;
-  };
-}, [selectedProgramId]);
-
-// Loading timeout effect
-useEffect(() => {
-  if (loading) {
-    const timeout = setTimeout(() => {
-      console.error('⏰ Loading timeout - forcefully stopping');
-      setLoading(false);
-    }, 10000); // 10 second timeout
-
-    return () => clearTimeout(timeout);
-  }
-}, [loading]);
-
-// Also add this test function you can call from browser console
-window.testAuth = async () => {
-  const token = localStorage.getItem('token');
-  console.log('Testing authentication...');
-  console.log('Token from localStorage:', token);
-  
-  if (!token) {
-    console.error('No token found!');
-    return;
-  }
-  
-  try {
-    // Test basic auth
-    const response = await fetch('http://localhost:3001/api/test-auth', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Auth test passed:', data);
-    } else {
-      console.error('❌ Auth test failed:', response.status);
-      const error = await response.text();
-      console.error('Error:', error);
-    }
-    
-    // Test search endpoint
-    const searchResponse = await fetch('http://localhost:3001/api/search/users/all', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    console.log('Search endpoint status:', searchResponse.status);
-    if (!searchResponse.ok) {
-      const error = await searchResponse.text();
-      console.error('Search error:', error);
-    }
-  } catch (err) {
-    console.error('Test failed:', err);
-  }
-};
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({
       ...prev,
@@ -531,8 +421,60 @@ window.testAuth = async () => {
     try {
       setSendingMessage(prev => ({ ...prev, [targetUser.id]: true }));
       
-      const currentUserId = localStorage.getItem('userId');
-      const chatId = `direct_${Math.min(currentUserId, targetUser.id)}_${Math.max(currentUserId, targetUser.id)}`;
+      // Use currentUser prop first, then fallback to localStorage
+      let currentUserId = currentUser?.id;
+      
+      if (!currentUserId) {
+        // Fallback to localStorage if currentUser prop is not available
+        console.log('CurrentUser prop not available, checking localStorage...');
+        
+        currentUserId = localStorage.getItem('userId') || 
+                       localStorage.getItem('user_id') || 
+                       localStorage.getItem('id');
+        
+        if (!currentUserId) {
+          const userString = localStorage.getItem('user') || localStorage.getItem('currentUser');
+          if (userString) {
+            try {
+              const userFromStorage = JSON.parse(userString);
+              currentUserId = userFromStorage?.id || userFromStorage?._id || userFromStorage?.userId;
+              console.log('Extracted user ID from user object:', currentUserId);
+            } catch (e) {
+              console.log('Failed to parse user object:', e);
+            }
+          }
+        }
+      }
+      
+      const targetUserId = targetUser.id || targetUser._id;
+      
+      console.log('Current User ID:', currentUserId);
+      console.log('Target User ID:', targetUserId);
+      console.log('Current User Object:', currentUser);
+      
+      // Validate that we have valid IDs
+      if (!currentUserId || currentUserId === 'null' || currentUserId === 'undefined') {
+        throw new Error(`Current user ID is invalid. Please log in again. Found: ${currentUserId}`);
+      }
+      
+      if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined') {
+        throw new Error('Target user ID is invalid');
+      }
+      
+      // Create a consistent chat ID by sorting the IDs alphabetically
+      const chatId = currentUserId < targetUserId 
+        ? `direct_${currentUserId}_${targetUserId}`
+        : `direct_${targetUserId}_${currentUserId}`;
+      
+      console.log('Generated Chat ID:', chatId);
+      
+      const messagePayload = {
+        chatId: chatId,
+        text: `Hi ${targetUser.firstName || targetUser.name}! I found you through the browse page and would love to connect.`,
+        type: 'text'
+      };
+      
+      console.log('Message Payload:', messagePayload);
       
       const response = await fetch('http://localhost:3001/api/chat/messages', {
         method: 'POST',
@@ -540,22 +482,35 @@ window.testAuth = async () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          chatId: chatId,
-          text: `Hi ${targetUser.firstName}! I found you through the browse page and would love to connect.`,
-          type: 'text'
-        })
+        body: JSON.stringify(messagePayload)
       });
 
       if (response.ok) {
-        alert(`Message sent to ${targetUser.firstName}! Redirecting to chat...`);
+        const result = await response.json();
+        console.log('Message sent successfully:', result);
+        
+        // Store info for the chat to auto-select when navigating
+        sessionStorage.setItem('selectedChatId', chatId);
+        sessionStorage.setItem('newChatTarget', JSON.stringify({
+          id: targetUserId,
+          name: `${targetUser.firstName || ''} ${targetUser.lastName || ''}`.trim(),
+          firstName: targetUser.firstName,
+          lastName: targetUser.lastName,
+          email: targetUser.email
+        }));
+        
+        // Show success and navigate
+        alert(`Message sent to ${targetUser.firstName || targetUser.name}! Opening chat...`);
         navigate('/chat');
+        
       } else {
-        throw new Error('Failed to send message');
+        const errorData = await response.text();
+        console.error('Server response:', errorData);
+        throw new Error(`Failed to send message: ${response.status}`);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
+      alert(`Failed to send message: ${error.message}`);
     } finally {
       setSendingMessage(prev => ({ ...prev, [targetUser.id]: false }));
     }
@@ -643,7 +598,7 @@ window.testAuth = async () => {
           </div>
           
           <div className="search-form">
-            {/* Primary Search Row */}
+            {/* Search term and search by */}
             <div className="search-row">
               <div className="search-group">
                 <label><span className="emoji">🔍</span> Search Term</label>
@@ -671,7 +626,7 @@ window.testAuth = async () => {
               </div>
             </div>
 
-            {/* Filter Row */}
+            {/* Role, Program, Year */}
             <div className="search-row">
               <div className="search-group">
                 <label><span className="emoji">👤</span> Role</label>
@@ -719,7 +674,7 @@ window.testAuth = async () => {
               </div>
             </div>
 
-            {/* Course Search Row */}
+            {/* Course filters */}
             <div className="search-row">
               <div className="search-group">
                 <label><span className="emoji">📖</span> Course Code</label>
@@ -761,7 +716,7 @@ window.testAuth = async () => {
                 </select>
               </div>
 
-              {/* Show selected course info */}
+              {/* Selected course info */}
               {filters.courseCode && filters.courseName && (
                 <div className="search-group">
                   <label><span className="emoji">ℹ️</span> Selected Course</label>
@@ -772,7 +727,7 @@ window.testAuth = async () => {
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Search buttons */}
             <div className="search-buttons">
               <button className="btn btn-primary" onClick={handleSearch}>
                 🔍 Search Users
@@ -784,7 +739,7 @@ window.testAuth = async () => {
           </div>
         </div>
 
-        {/* Results Section */}
+        {/* Results section */}
         <div className="results-section">
           <div className="results-header">
             <h3 className="results-title">
