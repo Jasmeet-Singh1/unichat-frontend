@@ -59,6 +59,157 @@ const Chat = ({
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [groupDetails, setGroupDetails] = useState(null);
 
+  // API Functions - Remove React.useCallback to avoid dependency issues
+  const loadConversations = async () => {
+    if (!currentUser) return;
+    
+    console.log('📞 Loading conversations for user:', currentUser.id);
+    
+    try {
+      setLoading(true);
+      const response = await fetch(`${apiBaseUrl}/api/chat/conversations`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const conversations = await response.json();
+        console.log('📞 Loaded conversations:', conversations);
+        setChats(conversations);
+      } else {
+        const errorText = await response.text();
+        console.error('📞 API Error Response:', errorText);
+        throw new Error(`Failed to load conversations: ${response.status} - ${errorText}`);
+      }
+    } catch (error) {
+      console.error('❌ Error loading conversations:', error);
+      setChats([]);
+      if (onError) onError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadGroups = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/groups`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userGroups = await response.json();
+        console.log('📦 Loaded groups:', userGroups);
+        setGroups(userGroups);
+      } else {
+        console.error('Failed to load groups');
+      }
+    } catch (error) {
+      console.error('Error loading groups:', error);
+    }
+  };
+
+  const loadMessages = async (chatId, chatType = 'direct') => {
+    if (!currentUser) return;
+    
+    console.log('📨 Loading messages for chat:', chatId, 'type:', chatType);
+    
+    try {
+      let url;
+      if (chatType === 'group') {
+        url = `${apiBaseUrl}/api/groups/${chatId}/messages`;
+      } else {
+        url = `${apiBaseUrl}/api/chat/messages/${chatId}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const chatMessages = await response.json();
+        console.log('📨 Loaded messages:', chatMessages.length);
+        setMessages(chatMessages);
+      } else {
+        throw new Error(`Failed to load messages: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error loading messages:', error);
+      setMessages([]);
+      if (onError) onError(error);
+    }
+  };
+
+  const markMessagesAsRead = async (chatId, chatType) => {
+    if (!currentUser || !chatId) return;
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/chat/chats/${chatId}/read?chatType=${chatType || 'direct'}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        console.log('✅ Messages marked as read');
+        
+        // Update the unread count in the chat list
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
+          )
+        );
+        
+        setGroups(prevGroups => 
+          prevGroups.map(group => 
+            group.id === chatId ? { ...group, unreadCount: 0 } : group
+          )
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error marking messages as read:', error);
+    }
+  };
+
+  // Create notification entry for new messages
+  const createChatNotification = async (message, chat) => {
+    if (!currentUser || message.senderId === currentUser.id) return;
+
+    try {
+      await fetch(`${apiBaseUrl}/api/notifications`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          type: 'message',
+          message: `${message.senderName} sent you a message${chat.type === 'group' ? ` in ${chat.name}` : ''}`,
+          metadata: {
+            chatId: chat.id,
+            messageId: message.id,
+            chatType: chat.type,
+            chatName: chat.name
+          }
+        })
+      });
+    } catch (error) {
+      console.error('❌ Error creating chat notification:', error);
+    }
+  };
+
   // Update tab title and favicon when unread count changes
   useEffect(() => {
     const totalUnread = getTotalUnreadCount(chats, groups);
@@ -66,7 +217,7 @@ const Chat = ({
     updateFavicon(totalUnread > 0);
   }, [chats, groups]);
 
-  // Setup Socket.IO for real-time updates (similar to your notification component)
+  // Setup Socket.IO for real-time updates
   useEffect(() => {
     if (!currentUser) return;
 
@@ -120,7 +271,7 @@ const Chat = ({
           handleNewMessageNotification(message, chat, currentUser, isAppVisible());
         }
 
-        // Create a notification entry (integrate with your notification system)
+        // Create a notification entry
         createChatNotification(message, chat);
       }
     });
@@ -146,158 +297,7 @@ const Chat = ({
     return () => {
       socketInstance.disconnect();
     };
-  }, [currentUser, socketUrl, selectedChat, chats, groups, onConnectionChange]);
-
-  // Create notification entry for new messages (integrate with your notification API)
-  const createChatNotification = async (message, chat) => {
-    if (!currentUser || message.senderId === currentUser.id) return;
-
-    try {
-      await fetch(`${apiBaseUrl}/api/notifications`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          type: 'message',
-          message: `${message.senderName} sent you a message${chat.type === 'group' ? ` in ${chat.name}` : ''}`,
-          metadata: {
-            chatId: chat.id,
-            messageId: message.id,
-            chatType: chat.type,
-            chatName: chat.name
-          }
-        })
-      });
-    } catch (error) {
-      console.error('❌ Error creating chat notification:', error);
-    }
-  };
-
-  // API Functions
-  const loadConversations = React.useCallback(async () => {
-    if (!currentUser) return;
-    
-    console.log('📞 Loading conversations for user:', currentUser.id);
-    
-    try {
-      setLoading(true);
-      const response = await fetch(`${apiBaseUrl}/api/chat/conversations`, {
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const conversations = await response.json();
-        console.log('📞 Loaded conversations:', conversations);
-        setChats(conversations);
-      } else {
-        const errorText = await response.text();
-        console.error('📞 API Error Response:', errorText);
-        throw new Error(`Failed to load conversations: ${response.status} - ${errorText}`);
-      }
-    } catch (error) {
-      console.error('❌ Error loading conversations:', error);
-      setChats([]);
-      if (onError) onError(error);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiBaseUrl, currentUser, onError]);
-
-  const loadGroups = React.useCallback(async () => {
-    if (!currentUser) return;
-    
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/groups`, {
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const userGroups = await response.json();
-        console.log('📦 Loaded groups:', userGroups);
-        setGroups(userGroups);
-      } else {
-        console.error('Failed to load groups');
-      }
-    } catch (error) {
-      console.error('Error loading groups:', error);
-    }
-  }, [apiBaseUrl, currentUser]);
-
-  const loadMessages = React.useCallback(async (chatId, chatType = 'direct') => {
-    if (!currentUser) return;
-    
-    console.log('📨 Loading messages for chat:', chatId, 'type:', chatType);
-    
-    try {
-      let url;
-      if (chatType === 'group') {
-        url = `${apiBaseUrl}/api/groups/${chatId}/messages`;
-      } else {
-        url = `${apiBaseUrl}/api/chat/messages/${chatId}`;
-      }
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const chatMessages = await response.json();
-        console.log('📨 Loaded messages:', chatMessages.length);
-        setMessages(chatMessages);
-      } else {
-        throw new Error(`Failed to load messages: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('❌ Error loading messages:', error);
-      setMessages([]);
-      if (onError) onError(error);
-    }
-  }, [apiBaseUrl, currentUser, onError]);
-
-  const markMessagesAsRead = React.useCallback(async (chatId, chatType) => {
-    if (!currentUser || !chatId) return;
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/chat/chats/${chatId}/read?chatType=${chatType || 'direct'}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        console.log('✅ Messages marked as read');
-        
-        // Update the unread count in the chat list
-        setChats(prevChats => 
-          prevChats.map(chat => 
-            chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
-          )
-        );
-        
-        setGroups(prevGroups => 
-          prevGroups.map(group => 
-            group.id === chatId ? { ...group, unreadCount: 0 } : group
-          )
-        );
-      }
-    } catch (error) {
-      console.error('❌ Error marking messages as read:', error);
-    }
-  }, [apiBaseUrl, currentUser]);
+  }, [currentUser?.id, socketUrl]); // Only depend on user ID, not the whole object
 
   const sendMessage = async () => {
     console.log('📤 Send message called:', {
@@ -541,13 +541,13 @@ const Chat = ({
     }
   };
 
-  // Load conversations and groups on mount
+  // Load conversations and groups on mount - FIXED DEPENDENCIES
   useEffect(() => {
     if (currentUser) {
       loadConversations();
       loadGroups();
     }
-  }, [currentUser, loadConversations, loadGroups]);
+  }, [currentUser?.id]); // Only depend on user ID
 
   // Auto-select chat when coming from browse page
   useEffect(() => {
@@ -576,14 +576,14 @@ const Chat = ({
         }
       }
     }
-  }, [chats, currentUser]);
+  }, [chats, currentUser?.id]); // Only depend on user ID
 
-  // Load messages when chat is selected
+  // Load messages when chat is selected - FIXED DEPENDENCIES
   useEffect(() => {
     if (selectedChat && currentUser) {
       loadMessages(selectedChat.id, selectedChat.type);
     }
-  }, [selectedChat, currentUser, loadMessages]);
+  }, [selectedChat?.id, selectedChat?.type, currentUser?.id]); // Only depend on specific properties
 
   // Mark messages as read
   useEffect(() => {
@@ -594,7 +594,7 @@ const Chat = ({
 
       return () => clearTimeout(timeout);
     }
-  }, [selectedChat, messages, markMessagesAsRead]);
+  }, [selectedChat?.id, messages.length]); // Only depend on specific properties
 
   // Early return if no user
   if (!currentUser) {

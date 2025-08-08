@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './browse.css';
+import UserProfileModal from '../components/UserProfileModal';
 
 const Browse = ({ role, currentUser }) => {
   const navigate = useNavigate();
@@ -8,7 +9,8 @@ const Browse = ({ role, currentUser }) => {
   const [loading, setLoading] = useState(false);
   const [sendingMessage, setSendingMessage] = useState({});
   const [loadingOptions, setLoadingOptions] = useState(true);
-  
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
   // Search filters state
   const [filters, setFilters] = useState({
     searchTerm: '',
@@ -517,28 +519,10 @@ const Browse = ({ role, currentUser }) => {
     }
   };
 
-  const viewProfile = async (userId) => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/search/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const profile = await response.json();
-        // You can implement a modal or navigate to a profile page
-        console.log('User profile:', profile);
-        alert(`Profile: ${profile.name}\nProgram: ${profile.program}\nEmail: ${profile.email}`);
-      } else {
-        throw new Error('Failed to load profile');
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      alert('Failed to load profile. Please try again.');
-    }
-  };
+  const viewProfile = (userId) => {
+  setSelectedUserId(userId);
+  setShowProfileModal(true);
+};
 
   const sortUsers = (users, sortBy) => {
     return [...users].sort((a, b) => {
@@ -839,6 +823,19 @@ const Browse = ({ role, currentUser }) => {
           </div>
         </div>
       </div>
+      
+      {showProfileModal && (
+        <UserProfileModal
+          isOpen={showProfileModal}
+          onClose={() => {
+            setShowProfileModal(false);
+            setSelectedUserId(null);
+          }}
+          userId={selectedUserId}
+          currentUser={currentUser}
+          onSendMessage={sendMessage}
+        />
+      )}
     </div>
   );
 };
