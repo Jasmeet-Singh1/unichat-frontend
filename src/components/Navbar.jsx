@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useUnreadCounts } from './useUnreadCounts';
 
 const Navbar = ({ role }) => {
   const safeRole = (role || "mentor").toLowerCase();
@@ -6,6 +7,7 @@ const Navbar = ({ role }) => {
   const isMentor = safeRole === "mentor";
 
   const [theme, setTheme] = useState("light");
+  const { chatUnreadCount, notificationUnreadCount } = useUnreadCounts();
 
   useEffect(() => {
     document.body.className = theme;
@@ -90,6 +92,7 @@ const Navbar = ({ role }) => {
           text-decoration: none;
           color: white;
           animation: bell-shake 2s infinite;
+          position: relative;
         }
 
         @keyframes bell-shake {
@@ -211,6 +214,37 @@ const Navbar = ({ role }) => {
           background-color: #ffc2d1;
           color: #3e1e26;
         }
+
+        /* Unread badge styles */
+        .unread-nav-badge {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background-color: #ff4444;
+          color: white;
+          border-radius: 50%;
+          min-width: 18px;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: bold;
+          padding: 2px 5px;
+          animation: pulse 2s infinite;
+          border: 2px solid white;
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+
+        .nav-icon-container {
+          position: relative;
+          display: inline-block;
+        }
       `}
       </style>
 
@@ -229,13 +263,20 @@ const Navbar = ({ role }) => {
 
             <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
               {isStudent && (
-                <a
-                  href="/notifications"
-                  className="notification-icon"
-                  title="View Notifications"
-                >
-                  🔔
-                </a>
+                <div className="nav-icon-container">
+                  <a
+                    href="/notifications"
+                    className="notification-icon"
+                    title="View Notifications"
+                  >
+                    🔔
+                  </a>
+                  {notificationUnreadCount > 0 && (
+                    <span className="unread-nav-badge">
+                      {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
+                    </span>
+                  )}
+                </div>
               )}
               <button onClick={toggleTheme} className="theme-toggle">
                 {theme === "light" ? "🌙 Maroon Mode" : "☀️ Light Mode"}
@@ -247,7 +288,14 @@ const Navbar = ({ role }) => {
         <nav className="navbar">
           <a href="/">🏠 Dashboard</a>
           <a href="/browse">🔍 Browse</a>
-          <a href="/chat">💬 Chats</a>
+          <div className="nav-icon-container">
+            <a href="/chat">💬 Chats</a>
+            {chatUnreadCount > 0 && (
+              <span className="unread-nav-badge">
+                {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+              </span>
+            )}
+          </div>
           <a href="/forums">📢 Forums</a>
 
           {isMentor && <a href="/mentor-request">📩 Mentor Requests</a>}

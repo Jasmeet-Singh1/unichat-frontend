@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
-import { Phone, Video, MoreVertical, Search, Info, Users, Settings } from 'lucide-react';
 
-const ChatHeader = ({ chat, onlineUsers, currentUser, onVideoCall, onVoiceCall, onSearchToggle }) => {
+const ChatHeader = ({ 
+  chat, 
+  onlineUsers = [], 
+  currentUser, 
+  onVideoCall, 
+  onVoiceCall, 
+  onSearchToggle,
+  onChatInfo,
+  onManageMembers,
+  onLeaveGroup 
+}) => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const getOnlineCount = () => {
@@ -19,7 +28,7 @@ const ChatHeader = ({ chat, onlineUsers, currentUser, onVideoCall, onVoiceCall, 
   const getChatTitle = () => {
     if (chat.type === 'direct') {
       const otherUser = chat.members?.find(member => member.id !== currentUser.id);
-      return otherUser?.name || 'Unknown User';
+      return otherUser?.name || `${otherUser?.firstName || ''} ${otherUser?.lastName || ''}`.trim() || 'Unknown User';
     }
     return chat.name || 'Group Chat';
   };
@@ -27,29 +36,30 @@ const ChatHeader = ({ chat, onlineUsers, currentUser, onVideoCall, onVoiceCall, 
   const getChatAvatar = () => {
     if (chat.type === 'direct') {
       const otherUser = chat.members?.find(member => member.id !== currentUser.id);
-      return otherUser?.avatar || '/default-avatar.png';
+      return otherUser?.avatar;
     }
-    return chat.avatar || '/default-group-avatar.png';
+    return chat.avatar;
   };
 
-  const getLastSeen = () => {
+  const getAvatarFallback = () => {
     if (chat.type === 'direct') {
       const otherUser = chat.members?.find(member => member.id !== currentUser.id);
-      if (onlineUsers.includes(otherUser?.id)) {
-        return 'Online';
-      } else if (otherUser?.lastSeen) {
-        const lastSeen = new Date(otherUser.lastSeen);
-        const now = new Date();
-        const diffInMinutes = Math.floor((now - lastSeen) / (1000 * 60));
-        
-        if (diffInMinutes < 1) return 'Just now';
-        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-        if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-        return lastSeen.toLocaleDateString();
-      }
-      return 'Offline';
+      const firstName = otherUser?.firstName || otherUser?.name || 'U';
+      return firstName.charAt(0).toUpperCase();
     }
-    return getOnlineCount();
+    return chat.name?.charAt(0).toUpperCase() || 'G';
+  };
+
+  const getSubtitle = () => {
+    if (chat.type === 'direct') {
+      return getOnlineCount();
+    } else {
+      const memberCount = chat.members?.length || 0;
+      const onlineCount = chat.members?.filter(member => 
+        onlineUsers.includes(member.id)
+      ).length || 0;
+      return `${memberCount} members${onlineCount > 0 ? `, ${onlineCount} online` : ''}`;
+    }
   };
 
   const handleVideoCall = () => {
@@ -73,152 +83,351 @@ const ChatHeader = ({ chat, onlineUsers, currentUser, onVideoCall, onVoiceCall, 
     setShowDropdown(false);
   };
 
+  const handleChatInfo = () => {
+    if (onChatInfo) {
+      onChatInfo();
+    }
+    setShowDropdown(false);
+  };
+
+  const handleManageMembers = () => {
+    if (onManageMembers) {
+      onManageMembers();
+    }
+    setShowDropdown(false);
+  };
+
+  const handleLeaveGroup = () => {
+    if (onLeaveGroup) {
+      if (window.confirm('Are you sure you want to leave this group?')) {
+        onLeaveGroup();
+      }
+    }
+    setShowDropdown(false);
+  };
+
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
-      <div className="flex items-center justify-between">
-        {/* Chat Info */}
-        <div className="flex items-center space-x-3">
+    <div style={{ 
+      backgroundColor: '#fff', 
+      borderBottom: '1px solid #ddd', 
+      padding: '20px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Chat Info - Make clickable for groups */}
+        <div 
+          style={{
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '16px',
+            cursor: chat.type === 'group' ? 'pointer' : 'default',
+            padding: chat.type === 'group' ? '8px' : '0',
+            borderRadius: chat.type === 'group' ? '8px' : '0',
+            transition: 'background-color 0.2s'
+          }}
+          onClick={chat.type === 'group' ? handleChatInfo : undefined}
+          onMouseEnter={(e) => {
+            if (chat.type === 'group') {
+              e.currentTarget.style.backgroundColor = '#f5f5f5';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (chat.type === 'group') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
           {/* Avatar */}
-          <div className="relative">
-            <img
-              src={getChatAvatar()}
-              alt={getChatTitle()}
-              className="w-10 h-10 rounded-full object-cover"
-            />
+          <div style={{ position: 'relative' }}>
+            {getChatAvatar() ? (
+              <img
+                src={getChatAvatar()}
+                alt={getChatTitle()}
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
+              />
+            ) : (
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                backgroundColor: chat.type === 'group' ? '#28a745' : '#0066cc'
+              }}>
+                {getAvatarFallback()}
+              </div>
+            )}
+            
+            {/* Online indicator for direct chats */}
             {chat.type === 'direct' && (
-              <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                onlineUsers.includes(chat.members?.find(m => m.id !== currentUser.id)?.id)
-                  ? 'bg-green-500'
-                  : 'bg-gray-400'
-              }`}></div>
+              <div style={{
+                position: 'absolute',
+                bottom: '0',
+                right: '0',
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                border: '2px solid white',
+                backgroundColor: onlineUsers.includes(chat.members?.find(m => m.id !== currentUser.id)?.id) ? '#28a745' : '#6c757d'
+              }}></div>
             )}
           </div>
 
           {/* Chat Details */}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-gray-900 truncate">
-              {getChatTitle()}
-            </h3>
-            <p className="text-sm text-gray-500 truncate">
-              {getLastSeen()}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ 
+                fontSize: '20px', 
+                fontWeight: 'bold', 
+                color: '#333',
+                margin: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {getChatTitle()}
+              </h3>
+              {chat.type === 'group' && (
+                <span style={{
+                  fontSize: '12px',
+                  backgroundColor: chat.isPrivate ? '#fff3cd' : '#d1edff',
+                  color: chat.isPrivate ? '#856404' : '#0c63e4',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontWeight: 'bold',
+                  border: `1px solid ${chat.isPrivate ? '#ffeaa7' : '#a6c8ff'}`
+                }}>
+                  {chat.isPrivate ? 'Private' : 'Public'}
+                </span>
+              )}
+            </div>
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#666',
+              margin: '4px 0 0 0',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {getSubtitle()}
+              {chat.type === 'group' && (
+                <span style={{ color: '#0066cc', fontWeight: 'bold' }}> • Click for details</span>
+              )}
             </p>
           </div>
         </div>
-
         {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
-          {/* Voice Call */}
-          <button
-            onClick={handleVoiceCall}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-            title="Voice call"
-          >
-            <Phone className="w-5 h-5" />
-          </button>
-
-          {/* Video Call */}
-          <button
-            onClick={handleVideoCall}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
-            title="Video call"
-          >
-            <Video className="w-5 h-5" />
-          </button>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          
           {/* Search */}
           <button
             onClick={handleSearchToggle}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+            style={{
+              padding: '12px',
+              border: 'none',
+              backgroundColor: '#f0f0f0',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              color: '#666',
+              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#e0e0e0'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#f0f0f0'}
             title="Search messages"
           >
-            <Search className="w-5 h-5" />
+            🔍
           </button>
 
           {/* More Options */}
-          <div className="relative">
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+              style={{
+                padding: '12px',
+                border: 'none',
+                backgroundColor: showDropdown ? '#e0e0e0' : '#f0f0f0',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                color: '#666',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (!showDropdown) e.target.style.backgroundColor = '#e0e0e0';
+              }}
+              onMouseLeave={(e) => {
+                if (!showDropdown) e.target.style.backgroundColor = '#f0f0f0';
+              }}
               title="More options"
             >
-              <MoreVertical className="w-5 h-5" />
+              ⋮
             </button>
 
             {/* Dropdown Menu */}
             {showDropdown && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+              <div style={{
+                position: 'absolute',
+                right: '0',
+                top: '100%',
+                marginTop: '4px',
+                width: '200px',
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                border: '1px solid #e0e0e0',
+                padding: '8px 0',
+                zIndex: 50
+              }}>
                 <button
-                  onClick={() => {
-                    // Handle chat info
-                    setShowDropdown(false);
+                  onClick={handleChatInfo}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    color: '#333',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
-                  <Info className="w-4 h-4 mr-3" />
-                  Chat Info
+                  ℹ️ {chat.type === 'group' ? 'Group Info' : 'Chat Info'}
                 </button>
 
                 {chat.type === 'group' && (
                   <button
-                    onClick={() => {
-                      // Handle manage members
-                      setShowDropdown(false);
+                    onClick={handleManageMembers}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      color: '#333',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
                     }}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    <Users className="w-4 h-4 mr-3" />
-                    Manage Members
+                    👥 Manage Members
                   </button>
                 )}
 
                 <button
                   onClick={() => {
-                    // Handle chat settings
+                    console.log('Chat settings clicked');
                     setShowDropdown(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    color: '#333',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
-                  <Settings className="w-4 h-4 mr-3" />
-                  Chat Settings
+                  ⚙️ Chat Settings
                 </button>
 
-                <hr className="my-1" />
+                <div style={{ 
+                  height: '1px', 
+                  backgroundColor: '#e0e0e0', 
+                  margin: '8px 0' 
+                }}></div>
 
                 <button
                   onClick={() => {
-                    // Handle mute notifications
+                    console.log('Mute notifications clicked');
                     setShowDropdown(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    color: '#333',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
-                  {chat.muted ? 'Unmute Notifications' : 'Mute Notifications'}
+                  {chat.muted ? '🔊 Unmute' : '🔇 Mute'} Notifications
                 </button>
 
                 <button
                   onClick={() => {
-                    // Handle clear chat
                     if (window.confirm('Are you sure you want to clear this chat?')) {
-                      // Clear chat logic
+                      console.log('Clear chat clicked');
                     }
                     setShowDropdown(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    color: '#dc3545',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#ffeaea'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
-                  Clear Chat
+                  🗑️ Clear Chat
                 </button>
 
                 {chat.type === 'group' && (
                   <button
-                    onClick={() => {
-                      // Handle leave group
-                      if (window.confirm('Are you sure you want to leave this group?')) {
-                        // Leave group logic
-                      }
-                      setShowDropdown(false);
+                    onClick={handleLeaveGroup}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      color: '#dc3545',
+                      cursor: 'pointer'
                     }}
-                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#ffeaea'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                   >
-                    Leave Group
+                    🚪 Leave Group
                   </button>
                 )}
               </div>
@@ -230,7 +439,14 @@ const ChatHeader = ({ chat, onlineUsers, currentUser, onVideoCall, onVoiceCall, 
       {/* Click outside to close dropdown */}
       {showDropdown && (
         <div
-          className="fixed inset-0 z-40"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 40
+          }}
           onClick={() => setShowDropdown(false)}
         ></div>
       )}
@@ -239,4 +455,3 @@ const ChatHeader = ({ chat, onlineUsers, currentUser, onVideoCall, onVoiceCall, 
 };
 
 export default ChatHeader;
-

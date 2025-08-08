@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import io from 'socket.io-client';
 
@@ -6,9 +6,35 @@ const Notification = ({ role }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, message, new user, admin announcement, etc.
+  const [filter, setFilter] = useState('all');
   const [socket, setSocket] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Format time helper
+  const formatTime = useCallback((timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diff = now - time;
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} mins ago`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)} hours ago`;
+    return `${Math.floor(minutes / 1440)} days ago`;
+  }, []);
+
+  // Get emoji for notification type
+  const getNotificationEmoji = useCallback((type) => {
+    switch (type) {
+      case 'message': return '💬';
+      case 'new user': return '🎉';
+      case 'admin announcement': return '📢';
+      case 'liked forum': return '👍';
+      case 'request': return '📝';
+      case 'added to group': return '👥';
+      default: return '🔔';
+    }
+  }, []);
 
   // Get current user from localStorage
   useEffect(() => {
@@ -16,7 +42,6 @@ const Notification = ({ role }) => {
     const userId = localStorage.getItem('userId');
     const userDataString = localStorage.getItem('user');
     
-    // Check all possible localStorage keys
     console.log('🔍 Debug ALL localStorage data:', {
       token: token ? 'EXISTS' : 'MISSING',
       userId: userId,
@@ -38,7 +63,6 @@ const Notification = ({ role }) => {
       }
     }
 
-    // Try different possible userId keys
     let finalUserId = userId || 
                      localStorage.getItem('user_id') || 
                      localStorage.getItem('id') ||
@@ -67,7 +91,7 @@ const Notification = ({ role }) => {
   }, []);
 
   // Load notifications from API with cache-busting
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!currentUser) return;
 
     console.log('🔄 Loading notifications for user:', currentUser.id);
@@ -75,7 +99,6 @@ const Notification = ({ role }) => {
     try {
       setLoading(true);
       
-      // Add cache-busting parameters
       const timestamp = Date.now();
       const response = await fetch(`http://localhost:3001/api/notifications/${currentUser.id}?t=${timestamp}&nocache=1`, {
         method: 'GET',
@@ -98,7 +121,7 @@ const Notification = ({ role }) => {
         const data = await response.json();
         console.log('📦 Received notifications:', data);
         setNotifications(data);
-        setError(null); // Clear any previous errors
+        setError(null);
       } else {
         const errorText = await response.text();
         console.error('❌ API Error:', errorText);
@@ -113,38 +136,55 @@ const Notification = ({ role }) => {
           _id: 1,
           type: "message",
           message: "Emily Watson sent you a message in Data Structures course",
-          createdAt: new Date(Date.now() - 2 * 60 * 1000), // 2 mins ago
+          createdAt: new Date(Date.now() - 2 * 60 * 1000),
           seen: false,
+          metadata: {
+            chatId: "chat_123",
+            chatType: "direct",
+            chatName: "Emily Watson"
+          }
         },
         {
           _id: 2,
-          type: "new user",
-          message: "John Carter joined your course: Web Development",
-          createdAt: new Date(Date.now() - 10 * 60 * 1000), // 10 mins ago
+          type: "message",
+          message: "John Carter sent a message in Web Development group",
+          createdAt: new Date(Date.now() - 5 * 60 * 1000),
           seen: false,
+          metadata: {
+            chatId: "group_456",
+            chatType: "group",
+            chatName: "Web Development Study Group"
+          }
         },
         {
           _id: 3,
-          type: "liked forum",
-          message: "Sarah Lee liked your post in Machine Learning forum",
-          createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-          seen: true,
+          type: "new user",
+          message: "Sarah Lee joined your course: Web Development",
+          createdAt: new Date(Date.now() - 10 * 60 * 1000),
+          seen: false,
         },
         {
           _id: 4,
+          type: "liked forum",
+          message: "Mike Johnson liked your post in Machine Learning forum",
+          createdAt: new Date(Date.now() - 60 * 60 * 1000),
+          seen: true,
+        },
+        {
+          _id: 5,
           type: "admin announcement",
           message: "New course materials available for Database Systems",
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
           seen: true,
         },
       ]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
   // Mark notification as seen
-  const markAsSeen = async (notificationId) => {
+  const markAsSeen = useCallback(async (notificationId) => {
     if (!currentUser) return;
 
     try {
@@ -166,10 +206,10 @@ const Notification = ({ role }) => {
     } catch (err) {
       console.error('Error marking notification as seen:', err);
     }
-  };
+  }, [currentUser]);
 
   // Mark all as seen
-  const markAllAsSeen = async () => {
+  const markAllAsSeen = useCallback(async () => {
     if (!currentUser) return;
 
     try {
@@ -187,38 +227,32 @@ const Notification = ({ role }) => {
     } catch (err) {
       console.error('Error marking all notifications as seen:', err);
     }
-  };
+  }, [currentUser]);
 
-  // Create a test notification (for debugging)
-  const createTestNotification = async () => {
-    if (!currentUser) return;
-
-    try {
-      const response = await fetch('http://localhost:3001/api/notifications', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          type: 'message',
-          message: `Test notification created at ${new Date().toLocaleTimeString()}`
-        })
-      });
-
-      if (response.ok) {
-        const newNotification = await response.json();
-        console.log('✅ Test notification created:', newNotification);
-        // Reload notifications to see the new one
-        loadNotifications();
-      } else {
-        console.error('❌ Failed to create test notification');
+  // Handle chat notification click - navigate to chat
+  const handleChatNotificationClick = useCallback((notification) => {
+    if (notification.type === 'message' && notification.metadata?.chatId) {
+      // Store chat info for auto-selection
+      sessionStorage.setItem('selectedChatId', notification.metadata.chatId);
+      if (notification.metadata.chatType) {
+        sessionStorage.setItem('selectedChatType', notification.metadata.chatType);
       }
-    } catch (err) {
-      console.error('❌ Error creating test notification:', err);
+      if (notification.metadata.chatName) {
+        sessionStorage.setItem('selectedChatName', notification.metadata.chatName);
+      }
+      
+      // Navigate to chat page
+      window.location.href = '/chat';
+      
+      // Mark as seen
+      markAsSeen(notification._id);
+    } else {
+      // Regular notification click
+      if (!notification.seen) {
+        markAsSeen(notification._id);
+      }
     }
-  };
+  }, [markAsSeen]);
 
   // Setup Socket.IO for real-time notifications
   useEffect(() => {
@@ -235,12 +269,10 @@ const Notification = ({ role }) => {
       console.log('Connected to notification socket');
     });
 
-    // Listen for new notifications
     socketInstance.on('new_notification', (notification) => {
       console.log('New notification received:', notification);
       setNotifications(prev => [notification, ...prev]);
       
-      // Show browser notification
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('New Notification', {
           body: notification.message,
@@ -262,35 +294,9 @@ const Notification = ({ role }) => {
       console.log('🚀 Component mounted, loading notifications...');
       loadNotifications();
     }
-  }, [currentUser]);
+  }, [currentUser, loadNotifications]);
 
-  // Format time helper
-  const formatTime = (timestamp) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diff = now - time;
-    const minutes = Math.floor(diff / 60000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes} mins ago`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)} hours ago`;
-    return `${Math.floor(minutes / 1440)} days ago`;
-  };
-
-  // Get emoji for notification type
-  const getNotificationEmoji = (type) => {
-    switch (type) {
-      case 'message': return '💬';
-      case 'new user': return '🎉';
-      case 'admin announcement': return '📢';
-      case 'liked forum': return '👍';
-      case 'request': return '📝';
-      case 'added to group': return '👥';
-      default: return '🔔';
-    }
-  };
-
-  // Filter notifications
+  // Filter notifications and calculate unread count
   const filteredNotifications = notifications.filter(notification => 
     filter === 'all' || notification.type === filter
   );
@@ -378,21 +384,6 @@ const Notification = ({ role }) => {
           cursor: not-allowed;
         }
 
-        .test-btn {
-          padding: 8px 16px;
-          background: #28a745;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          transition: background 0.2s;
-        }
-
-        .test-btn:hover {
-          background: #218838;
-        }
-
         .notification {
           display: flex;
           justify-content: space-between;
@@ -411,6 +402,14 @@ const Notification = ({ role }) => {
         .notification.unread {
           background-color: #f0f8ff;
           border-left-color: #3A86FF;
+        }
+
+        .notification.chat-notification {
+          border-left-color: #28a745;
+        }
+
+        .notification.chat-notification.unread {
+          background-color: #f0fff4;
         }
 
         .notification-content {
@@ -433,6 +432,13 @@ const Notification = ({ role }) => {
 
         .notification-text.unread {
           font-weight: 600;
+        }
+
+        .chat-notification-meta {
+          color: #666;
+          font-size: 12px;
+          display: block;
+          margin-top: 4px;
         }
 
         .notification-time {
@@ -467,26 +473,6 @@ const Notification = ({ role }) => {
           border-radius: 8px;
           margin: 20px 0;
         }
-
-        .debug-info {
-          background: #f8f9fa;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
-          padding: 16px;
-          margin: 20px 0;
-          font-family: monospace;
-          font-size: 12px;
-        }
-
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #ECECEC;
-          color: #777;
-          font-size: 13px;
-          margin-top: 40px;
-          border-radius: 0 0 12px 12px;
-        }
       `}
       </style>
 
@@ -520,14 +506,6 @@ const Notification = ({ role }) => {
             </select>
             
             <button 
-              className="test-btn"
-              onClick={createTestNotification}
-              disabled={!currentUser}
-            >
-              Create Test
-            </button>
-            
-            <button 
               className="mark-all-btn"
               onClick={markAllAsSeen}
               disabled={unreadCount === 0}
@@ -536,18 +514,6 @@ const Notification = ({ role }) => {
             </button>
           </div>
         </div>
-
-        {/* Debug Information */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="debug-info">
-            <strong>Debug Info:</strong><br/>
-            User ID: {currentUser?.id || 'Not set'}<br/>
-            Token: {currentUser?.token ? 'Present' : 'Missing'}<br/>
-            Notifications Count: {notifications.length}<br/>
-            Loading: {loading ? 'Yes' : 'No'}<br/>
-            Error: {error || 'None'}<br/>
-          </div>
-        )}
 
         {error && (
           <div className="error-state">
@@ -577,17 +543,18 @@ const Notification = ({ role }) => {
             <div className="empty-state-emoji">📭</div>
             <h3>No notifications yet</h3>
             <p>You'll see notifications here when you receive messages, course updates, and more.</p>
-            <p><small>Try clicking "Create Test" to add a test notification.</small></p>
           </motion.div>
         ) : (
           filteredNotifications.map((notification, index) => (
             <motion.div
               key={notification._id}
-              className={`notification ${!notification.seen ? 'unread' : ''}`}
+              className={`notification ${!notification.seen ? 'unread' : ''} ${
+                notification.type === 'message' ? 'chat-notification' : ''
+              }`}
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => !notification.seen && markAsSeen(notification._id)}
+              onClick={() => handleChatNotificationClick(notification)}
             >
               <div className="notification-content">
                 <div className="notification-emoji">
@@ -595,6 +562,16 @@ const Notification = ({ role }) => {
                 </div>
                 <div className={`notification-text ${!notification.seen ? 'unread' : ''}`}>
                   {notification.message}
+                  {notification.type === 'message' && notification.metadata?.chatType === 'group' && (
+                    <span className="chat-notification-meta">
+                      Group: {notification.metadata.chatName}
+                    </span>
+                  )}
+                  {notification.type === 'message' && notification.metadata?.chatType === 'direct' && (
+                    <span className="chat-notification-meta">
+                      Direct message
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="notification-time">

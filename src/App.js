@@ -16,7 +16,7 @@ import Logout from "./pages/Logout";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Browse from "./pages/Browse";
-import Notification from "./pages/Notification";
+import Notification from "./components/Notification"; // ✅ This import path is correct
 import MentorRequest from "./pages/MentorRequest";
 import AlumniDashboard from "./pages/AlumniDashboard";
 import Forums from "./pages/Forums";
@@ -75,7 +75,7 @@ function App() {
       navigate("/login");
     }
     console.log("Role retrieved from localStorage:", storedRole);
-  }, [navigate, location.pathname]); // Added location.pathname to dependency array
+  }, [navigate, location.pathname]);
 
   return (
     <Routes>
@@ -95,6 +95,11 @@ function App() {
               <Route path="/mentor" element={<AlumniMentorStudent />} />
               <Route path="/settings" element={<AlumniSetting />} />
               <Route path="/events" element={<AlumniViewEvents />} />
+              {/* Add notifications route for Alumni too */}
+              <Route
+                path="/notifications"
+                element={<Notification role={role} />}
+              />
             </Route>
           </>
         ) : (
@@ -125,9 +130,9 @@ function App() {
               }
             />
             <Route
-  path="/chat"
-  element={<ChatPage role={role} />}
-/>
+              path="/chat"
+              element={<ChatPage role={role} />}
+            />
             <Route
               path="/profile"
               element={
@@ -155,8 +160,8 @@ function App() {
                 }
               />
             )}
-            {/* Student-specific */}
-            {role === "Student" && (
+            {/* Notifications for both Student and Mentor */}
+            {(role === "Student" || role === "Mentor") && (
               <Route
                 path="/notifications"
                 element={

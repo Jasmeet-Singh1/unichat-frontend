@@ -1,10 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Smile, Phone, Video, Search, MoreVertical, Users, MessageCircle, Plus, Settings, Mic, CheckCheck, Star } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import { 
+  getTotalUnreadCount, 
+  updateTabTitle, 
+  updateFavicon, 
+  handleNewMessageNotification, 
+  isAppVisible, 
+  formatGroupData, 
+  createTempChat 
+} from './chat-utils.js';
+import ChatHeader from './ChatHeader';
+import ChatSidebar from './ChatSidebar';
+import MessageList from './MessageList';
+import MessageInput from './MessageInput';
+import GroupModal from './groupModal';
+import GroupDetailsModal from './groupDetailsModal';
+
+import './chat-styles.css';
 
 console.log('🚀 LOADING WORKING CHAT COMPONENT FROM /components/Chat.jsx');
 
-// Enhanced Chat Interface connected to real backend
 const Chat = ({ 
   currentUser, 
   apiBaseUrl = 'http://localhost:3001',
@@ -14,7 +29,7 @@ const Chat = ({
 }) => {
   console.log('🎯 Chat component rendering with currentUser:', currentUser);
 
-  // ALL HOOKS MUST BE AT THE TOP
+  // Main state
   const [selectedChat, setSelectedChat] = useState(null);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,82 +42,145 @@ const Chat = ({
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState([]);
-  const messagesEndRef = useRef(null);
-  // Emoji categories
-  const emojiCategories = {
-    smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳'],
-    people: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳‍♂️', '🧕', '👮‍♀️', '👮‍♂️', '👷‍♀️', '👷‍♂️', '💂‍♀️', '💂‍♂️', '🕵️‍♀️', '🕵️‍♂️', '👩‍⚕️', '👨‍⚕️', '👩‍🌾', '👨‍🌾'],
-    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇'],
-    food: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🌽', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐'],
-    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️'],
-    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️']
-  };
 
-  // Popular emojis for quick access
-  const popularEmojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '💯', '👏', '🙏', '💪', '🚀', '✨', '💖', '😍'];
+  // Group-related state
+  const [groups, setGroups] = useState([]);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupForm, setGroupForm] = useState({
+    name: '',
+    description: '',
+    isPrivate: true,
+    memberSearch: '',
+    searchResults: [],
+    selectedMembers: []
+  });
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [groupError, setGroupError] = useState(null);
+  const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [groupDetails, setGroupDetails] = useState(null);
 
-  // Request notification permission on component mount
+  // Update tab title and favicon when unread count changes
   useEffect(() => {
-    // Request notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission);
-      });
-    }
-  }, []);
+    const totalUnread = getTotalUnreadCount(chats, groups);
+    updateTabTitle(totalUnread);
+    updateFavicon(totalUnread > 0);
+  }, [chats, groups]);
 
-  // Function to show notification
-  const showNotification = (title, body, icon = '💬') => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification(title, {
-        body: body,
-        icon: '/favicon.ico', // You can use your app icon here
-        badge: '/favicon.ico',
-        tag: 'chat-message',
-        requireInteraction: false,
-        silent: false
-      });
+  // Setup Socket.IO for real-time updates (similar to your notification component)
+  useEffect(() => {
+    if (!currentUser) return;
 
-      // Auto close after 5 seconds
-      setTimeout(() => notification.close(), 5000);
+    const socketInstance = io(socketUrl, {
+      auth: {
+        token: currentUser.token,
+        userId: currentUser.id
+      }
+    });
 
-      // Click to focus window
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-    }
-  };
+    socketInstance.on('connect', () => {
+      console.log('🔌 Connected to chat socket');
+      setIsConnected(true);
+      if (onConnectionChange) onConnectionChange(true);
+    });
 
-  // Play notification sound
-  const playNotificationSound = () => {
-    // Create a simple notification sound using Web Audio API
+    socketInstance.on('disconnect', () => {
+      console.log('🔌 Disconnected from chat socket');
+      setIsConnected(false);
+      if (onConnectionChange) onConnectionChange(false);
+    });
+
+    // Listen for new messages
+    socketInstance.on('new_message', (message) => {
+      console.log('📨 New message received via socket:', message);
+      
+      // Update messages if it's for the current chat
+      if (selectedChat && message.chatId === selectedChat.id) {
+        setMessages(prev => [...prev, message]);
+      } else {
+        // Update unread count for the chat
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === message.chatId 
+              ? { ...chat, unreadCount: (chat.unreadCount || 0) + 1, lastMessage: message }
+              : chat
+          )
+        );
+        
+        setGroups(prevGroups => 
+          prevGroups.map(group => 
+            group.id === message.chatId 
+              ? { ...group, unreadCount: (group.unreadCount || 0) + 1, lastMessage: message }
+              : group
+          )
+        );
+
+        // Show notification if app is not visible
+        const chat = [...chats, ...groups].find(c => c.id === message.chatId);
+        if (chat) {
+          handleNewMessageNotification(message, chat, currentUser, isAppVisible());
+        }
+
+        // Create a notification entry (integrate with your notification system)
+        createChatNotification(message, chat);
+      }
+    });
+
+    // Listen for online users
+    socketInstance.on('users_online', (users) => {
+      setOnlineUsers(users);
+    });
+
+    // Listen for typing indicators
+    socketInstance.on('user_typing', (data) => {
+      setTypingUsers(prev => 
+        prev.includes(data.userId) ? prev : [...prev, data.userId]
+      );
+    });
+
+    socketInstance.on('user_stopped_typing', (data) => {
+      setTypingUsers(prev => prev.filter(id => id !== data.userId));
+    });
+
+    setSocket(socketInstance);
+
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, [currentUser, socketUrl, selectedChat, chats, groups, onConnectionChange]);
+
+  // Create notification entry for new messages (integrate with your notification API)
+  const createChatNotification = async (message, chat) => {
+    if (!currentUser || message.senderId === currentUser.id) return;
+
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
+      await fetch(`${apiBaseUrl}/api/notifications`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          type: 'message',
+          message: `${message.senderName} sent you a message${chat.type === 'group' ? ` in ${chat.name}` : ''}`,
+          metadata: {
+            chatId: chat.id,
+            messageId: message.id,
+            chatType: chat.type,
+            chatName: chat.name
+          }
+        })
+      });
     } catch (error) {
-      console.log('Could not play notification sound:', error);
+      console.error('❌ Error creating chat notification:', error);
     }
   };
+
+  // API Functions
   const loadConversations = React.useCallback(async () => {
     if (!currentUser) return;
     
     console.log('📞 Loading conversations for user:', currentUser.id);
-    console.log('📞 Using token:', currentUser.token ? 'EXISTS' : 'MISSING');
-    console.log('📞 API URL:', `${apiBaseUrl}/api/chat/conversations`);
     
     try {
       setLoading(true);
@@ -112,9 +190,6 @@ const Chat = ({
           'Content-Type': 'application/json'
         }
       });
-
-      console.log('📞 Conversations response status:', response.status);
-      console.log('📞 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const conversations = await response.json();
@@ -127,7 +202,6 @@ const Chat = ({
       }
     } catch (error) {
       console.error('❌ Error loading conversations:', error);
-      // Set empty array so UI shows "no conversations" instead of loading forever
       setChats([]);
       if (onError) onError(error);
     } finally {
@@ -135,21 +209,48 @@ const Chat = ({
     }
   }, [apiBaseUrl, currentUser, onError]);
 
-  // Load messages for selected chat
-  const loadMessages = React.useCallback(async (chatId) => {
+  const loadGroups = React.useCallback(async () => {
     if (!currentUser) return;
     
-    console.log('📨 Loading messages for chat:', chatId);
-    
     try {
-      const response = await fetch(`${apiBaseUrl}/api/chat/messages/${chatId}`, {
+      const response = await fetch(`${apiBaseUrl}/api/groups`, {
         headers: {
           'Authorization': `Bearer ${currentUser.token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      console.log('📨 Messages response status:', response.status);
+      if (response.ok) {
+        const userGroups = await response.json();
+        console.log('📦 Loaded groups:', userGroups);
+        setGroups(userGroups);
+      } else {
+        console.error('Failed to load groups');
+      }
+    } catch (error) {
+      console.error('Error loading groups:', error);
+    }
+  }, [apiBaseUrl, currentUser]);
+
+  const loadMessages = React.useCallback(async (chatId, chatType = 'direct') => {
+    if (!currentUser) return;
+    
+    console.log('📨 Loading messages for chat:', chatId, 'type:', chatType);
+    
+    try {
+      let url;
+      if (chatType === 'group') {
+        url = `${apiBaseUrl}/api/groups/${chatId}/messages`;
+      } else {
+        url = `${apiBaseUrl}/api/chat/messages/${chatId}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (response.ok) {
         const chatMessages = await response.json();
@@ -160,16 +261,293 @@ const Chat = ({
       }
     } catch (error) {
       console.error('❌ Error loading messages:', error);
+      setMessages([]);
       if (onError) onError(error);
     }
   }, [apiBaseUrl, currentUser, onError]);
 
-  // Load conversations on mount
+  const markMessagesAsRead = React.useCallback(async (chatId, chatType) => {
+    if (!currentUser || !chatId) return;
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/chat/chats/${chatId}/read?chatType=${chatType || 'direct'}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        console.log('✅ Messages marked as read');
+        
+        // Update the unread count in the chat list
+        setChats(prevChats => 
+          prevChats.map(chat => 
+            chat.id === chatId ? { ...chat, unreadCount: 0 } : chat
+          )
+        );
+        
+        setGroups(prevGroups => 
+          prevGroups.map(group => 
+            group.id === chatId ? { ...group, unreadCount: 0 } : group
+          )
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error marking messages as read:', error);
+    }
+  }, [apiBaseUrl, currentUser]);
+
+  const sendMessage = async () => {
+    console.log('📤 Send message called:', {
+      messageLength: message.length,
+      hasSelectedChat: !!selectedChat,
+      selectedChatId: selectedChat?.id,
+      chatType: selectedChat?.type,
+      currentUserId: currentUser?.id
+    });
+
+    if (!message.trim() || !selectedChat) {
+      console.warn('⚠️ Cannot send message: missing text or chat');
+      return;
+    }
+
+    try {
+      console.log('📤 Sending message to API');
+      
+      let url, payload;
+      if (selectedChat.type === 'group') {
+        url = `${apiBaseUrl}/api/groups/${selectedChat.id}/messages`;
+        payload = { text: message.trim() };
+      } else {
+        url = `${apiBaseUrl}/api/chat/messages`;
+        payload = {
+          chatId: selectedChat.id,
+          text: message.trim(),
+          type: 'text'
+        };
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const savedMessage = await response.json();
+        console.log('✅ Message saved successfully:', savedMessage);
+        
+        setMessages(prev => [...prev, savedMessage]);
+        setMessage('');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to send message:', errorText);
+        throw new Error(`Failed to send message: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+      alert(`Failed to send message: ${error.message}`);
+      if (onError) onError(error);
+    }
+  };
+
+  // Group Functions
+  const createGroup = async () => {
+    if (!currentUser) return;
+    
+    if (!groupForm.name.trim()) {
+      setGroupError('Group name is required');
+      return;
+    }
+
+    try {
+      setGroupLoading(true);
+      setGroupError(null);
+
+      const memberIds = groupForm.selectedMembers.map(member => member._id);
+
+      const response = await fetch(`${apiBaseUrl}/api/groups`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: groupForm.name.trim(),
+          description: groupForm.description.trim(),
+          isPrivate: groupForm.isPrivate,
+          memberIds: memberIds
+        })
+      });
+
+      if (response.ok) {
+        const newGroup = await response.json();
+        console.log('✅ Group created successfully:', newGroup);
+        
+        const formattedGroup = formatGroupData(newGroup);
+        setGroups(prev => [formattedGroup, ...prev]);
+        
+        // Reset form and close modal
+        setGroupForm({ 
+          name: '', 
+          description: '', 
+          isPrivate: true,
+          memberSearch: '',
+          searchResults: [],
+          selectedMembers: []
+        });
+        setShowGroupModal(false);
+        
+        setActiveTab('groups');
+        setSelectedChat(formattedGroup);
+        
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create group');
+      }
+    } catch (err) {
+      console.error('❌ Error creating group:', err);
+      setGroupError(err.message);
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
+  const handleGroupFormChange = (field, value) => {
+    setGroupForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Trigger user search when typing in memberSearch
+    if (field === 'memberSearch') {
+      searchUsers(value);
+    }
+    
+    if (groupError) setGroupError(null);
+  };
+
+  const searchUsers = async (query) => {
+    if (!query || query.length < 2) {
+      handleGroupFormChange('searchResults', []);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/groups/search/users?query=${encodeURIComponent(query)}`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        const filteredUsers = users.filter(user => 
+          user._id !== currentUser.id && 
+          !groupForm.selectedMembers.some(member => member._id === user._id)
+        );
+        handleGroupFormChange('searchResults', filteredUsers);
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
+    }
+  };
+
+  const addMemberToGroup = (user) => {
+    const updatedMembers = [...(groupForm.selectedMembers || []), user];
+    handleGroupFormChange('selectedMembers', updatedMembers);
+    handleGroupFormChange('searchResults', []);
+    handleGroupFormChange('memberSearch', '');
+  };
+
+  const removeMemberFromGroup = (userId) => {
+    const updatedMembers = groupForm.selectedMembers.filter(member => member._id !== userId);
+    handleGroupFormChange('selectedMembers', updatedMembers);
+  };
+
+  const loadGroupDetails = async (groupId) => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/groups/${groupId}`, {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const details = await response.json();
+        setGroupDetails(details);
+        setShowGroupDetails(true);
+      } else {
+        console.error('Failed to load group details');
+      }
+    } catch (error) {
+      console.error('Error loading group details:', error);
+    }
+  };
+
+  const removeMemberFromExistingGroup = async (groupId, userId) => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/groups/${groupId}/members/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        loadGroupDetails(groupId);
+        loadGroups();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to remove member');
+      }
+    } catch (error) {
+      console.error('Error removing member:', error);
+      alert('Failed to remove member');
+    }
+  };
+
+  const leaveExistingGroup = async (groupId) => {
+    if (!window.confirm('Are you sure you want to leave this group?')) return;
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/groups/${groupId}/leave`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setShowGroupDetails(false);
+        setSelectedChat(null);
+        loadGroups();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to leave group');
+      }
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      alert('Failed to leave group');
+    }
+  };
+
+  // Load conversations and groups on mount
   useEffect(() => {
     if (currentUser) {
       loadConversations();
+      loadGroups();
     }
-  }, [currentUser, loadConversations]);
+  }, [currentUser, loadConversations, loadGroups]);
 
   // Auto-select chat when coming from browse page
   useEffect(() => {
@@ -186,31 +564,9 @@ const Chat = ({
         sessionStorage.removeItem('selectedChatId');
         sessionStorage.removeItem('newChatTarget');
       } else if (newChatTarget) {
-        // Create a temporary chat object for the new conversation
         try {
           const targetUser = JSON.parse(newChatTarget);
-          const tempChat = {
-            id: selectedChatId,
-            name: targetUser.name,
-            type: 'direct',
-            members: [
-              { 
-                id: currentUser.id,
-                name: currentUser.name,
-                firstName: currentUser.firstName,
-                lastName: currentUser.lastName,
-                email: currentUser.email
-              },
-              targetUser
-            ],
-            avatar: null,
-            lastMessage: null,
-            updatedAt: new Date(),
-            unreadCount: 0,
-            pinned: false,
-            muted: false,
-            archived: false
-          };
+          const tempChat = createTempChat(currentUser, targetUser, selectedChatId);
           console.log('🎯 Creating temporary chat for new conversation:', tempChat);
           setSelectedChat(tempChat);
           sessionStorage.removeItem('selectedChatId');
@@ -225,108 +581,40 @@ const Chat = ({
   // Load messages when chat is selected
   useEffect(() => {
     if (selectedChat && currentUser) {
-      loadMessages(selectedChat.id);
+      loadMessages(selectedChat.id, selectedChat.type);
     }
   }, [selectedChat, currentUser, loadMessages]);
 
+  // Mark messages as read
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (selectedChat && messages.length > 0) {
+      const timeout = setTimeout(() => {
+        markMessagesAsRead(selectedChat.id, selectedChat.type);
+      }, 1000);
 
-  // Early return AFTER all hooks
+      return () => clearTimeout(timeout);
+    }
+  }, [selectedChat, messages, markMessagesAsRead]);
+
+  // Early return if no user
   if (!currentUser) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No User Found</h3>
-          <p className="text-gray-500">Please log in to access the chat</p>
+      <div className="error-screen">
+        <div className="error-content">
+          <div className="error-icon">⚠️</div>
+          <h3 className="error-title">No User Found</h3>
+          <p className="error-message">Please log in to access the chat</p>
         </div>
       </div>
     );
   }
 
-  const sendMessage = async () => {
-    console.log('📤 Send message called:', {
-      messageLength: message.length,
-      hasSelectedChat: !!selectedChat,
-      selectedChatId: selectedChat?.id,
-      currentUserId: currentUser?.id
-    });
-
-    if (!message.trim() || !selectedChat) {
-      console.warn('⚠️ Cannot send message: missing text or chat');
-      return;
-    }
-
-    const newMessage = {
-      chatId: selectedChat.id,
-      text: message.trim(),
-      type: 'text'
-    };
-
-    try {
-      console.log('📤 Sending message to API:', newMessage);
-      
-      // Send to backend
-      const response = await fetch(`${apiBaseUrl}/api/chat/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newMessage)
-      });
-
-      console.log('📤 API response status:', response.status);
-
-      if (response.ok) {
-        const savedMessage = await response.json();
-        console.log('✅ Message saved successfully:', savedMessage);
-        
-        // Add to local state immediately
-        setMessages(prev => [...prev, savedMessage]);
-        setMessage('');
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Failed to send message:', errorText);
-        throw new Error(`Failed to send message: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('❌ Error sending message:', error);
-      alert(`Failed to send message: ${error.message}`);
-      if (onError) onError(error);
-    }
-  };
-
-  const formatTime = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatLastMessageTime = (timestamp) => {
-    const now = new Date();
-    const diff = now - new Date(timestamp);
-    const minutes = Math.floor(diff / 60000);
-    
-    if (minutes < 1) return 'now';
-    if (minutes < 60) return `${minutes}m`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
-    return `${Math.floor(minutes / 1440)}d`;
-  };
-
+  // Loading screen
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        height: '100vh', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f0f0f0',
-        fontSize: '18px',
-        fontFamily: 'Arial, sans-serif'
-      }}>
-        <div style={{ textAlign: 'center', color: '#333' }}>
-          <div style={{ fontSize: '24px', marginBottom: '16px' }}>Loading chats...</div>
+      <div className="loading-screen">
+        <div className="loading-content">
+          <div className="loading-title">Loading chats...</div>
           <div>Please wait...</div>
         </div>
       </div>
@@ -334,530 +622,98 @@ const Chat = ({
   }
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      height: '100vh', 
-      backgroundColor: '#f5f5f5',
-      fontFamily: 'Arial, sans-serif'
-    }}>
+    <div className="chat-container">
       {/* Sidebar */}
-      <div style={{ 
-        width: '400px', 
-        backgroundColor: '#ffffff', 
-        borderRight: '1px solid #ddd',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Header */}
-        <div style={{ 
-          padding: '20px', 
-          borderBottom: '1px solid #eee',
-          backgroundColor: '#fff'
-        }}>
-          <h1 style={{ 
-            fontSize: '24px', 
-            fontWeight: 'bold', 
-            color: '#333',
-            margin: '0 0 20px 0'
-          }}>
-            UniChat ✨
-          </h1>
-          
-          <input
-            type="text"
-            placeholder="Search conversations..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '16px',
-              backgroundColor: '#f9f9f9'
-            }}
-          />
-        </div>
+      <ChatSidebar
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        chats={chats}
+        groups={groups}
+        selectedChat={selectedChat}
+        setSelectedChat={setSelectedChat}
+        setShowGroupModal={setShowGroupModal}
+      />
 
-        {/* Tabs */}
-        <div style={{ 
-          display: 'flex', 
-          borderBottom: '1px solid #eee',
-          backgroundColor: '#f9f9f9'
-        }}>
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'direct', label: 'Direct' },
-            { id: 'groups', label: 'Groups' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                flex: 1,
-                padding: '16px',
-                border: 'none',
-                backgroundColor: activeTab === tab.id ? '#fff' : 'transparent',
-                color: activeTab === tab.id ? '#0066cc' : '#666',
-                fontWeight: activeTab === tab.id ? 'bold' : 'normal',
-                cursor: 'pointer',
-                borderBottom: activeTab === tab.id ? '2px solid #0066cc' : 'none'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Group Creation Modal */}
+      <GroupModal
+        showGroupModal={showGroupModal}
+        setShowGroupModal={setShowGroupModal}
+        groupForm={groupForm}
+        handleGroupFormChange={handleGroupFormChange}
+        groupError={groupError}
+        setGroupError={setGroupError}
+        groupLoading={groupLoading}
+        createGroup={createGroup}
+        addMemberToGroup={addMemberToGroup}
+        removeMemberFromGroup={removeMemberFromGroup}
+      />
 
-        {/* Chat List */}
-        <div style={{ 
-          flex: 1, 
-          overflowY: 'auto',
-          backgroundColor: '#fff'
-        }}>
-          {chats.length === 0 ? (
-            <div style={{ 
-              padding: '40px 20px', 
-              textAlign: 'center', 
-              color: '#666'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>💬</div>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
-                No conversations yet
-              </div>
-              <div style={{ fontSize: '14px' }}>
-                Start a new chat to begin messaging
-              </div>
-            </div>
-          ) : (
-            chats.map((chat) => (
-              <div
-                key={chat.id}
-                onClick={() => {
-                  console.log('🎯 Selecting chat:', chat);
-                  setSelectedChat(chat);
-                }}
-                style={{
-                  padding: '20px',
-                  borderBottom: '1px solid #f0f0f0',
-                  cursor: 'pointer',
-                  backgroundColor: selectedChat?.id === chat.id ? '#e3f2fd' : '#fff'
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedChat?.id !== chat.id) {
-                    e.target.style.backgroundColor = '#f5f5f5';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedChat?.id !== chat.id) {
-                    e.target.style.backgroundColor = '#fff';
-                  }
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {/* Avatar */}
-                  <div style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    backgroundColor: '#0066cc', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '20px',
-                    fontWeight: 'bold'
-                  }}>
-                    {chat.name.charAt(0).toUpperCase()}
-                  </div>
-
-                  {/* Chat Info */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h4 style={{ 
-                        fontSize: '16px', 
-                        fontWeight: 'bold', 
-                        color: '#333',
-                        margin: 0
-                      }}>
-                        {chat.name}
-                      </h4>
-                      <span style={{ fontSize: '12px', color: '#999' }}>
-                        {chat.lastMessage ? formatLastMessageTime(chat.lastMessage.timestamp) : ''}
-                      </span>
-                    </div>
-                    
-                    <p style={{ 
-                      fontSize: '14px', 
-                      color: '#666', 
-                      margin: '4px 0 0 0',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {chat.lastMessage ? chat.lastMessage.text : 'No messages yet'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      {/* Group Details Modal */}
+      <GroupDetailsModal
+        showGroupDetails={showGroupDetails}
+        setShowGroupDetails={setShowGroupDetails}
+        groupDetails={groupDetails}
+        currentUser={currentUser}
+        removeMemberFromExistingGroup={removeMemberFromExistingGroup}
+        leaveExistingGroup={leaveExistingGroup}
+      />
 
       {/* Main Chat Area */}
-      <div style={{ 
-        flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
-        backgroundColor: '#fff'
-      }}>
+      <div className="main-chat-area">
         {selectedChat ? (
           <>
             {/* Chat Header */}
-            <div style={{ 
-              backgroundColor: '#fff', 
-              borderBottom: '1px solid #ddd', 
-              padding: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    backgroundColor: '#0066cc', 
-                    borderRadius: '50%', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '18px',
-                    fontWeight: 'bold'
-                  }}>
-                    {selectedChat.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 style={{ 
-                      fontSize: '20px', 
-                      fontWeight: 'bold', 
-                      color: '#333',
-                      margin: 0
-                    }}>
-                      {selectedChat.name}
-                    </h3>
-                    <p style={{ 
-                      fontSize: '14px', 
-                      color: '#666',
-                      margin: '4px 0 0 0'
-                    }}>
-                      Online
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={() => console.log('📞 Voice call clicked')}
-                    style={{
-                      padding: '12px',
-                      border: 'none',
-                      backgroundColor: '#f0f0f0',
-                      borderRadius: '50%',
-                      cursor: 'pointer',
-                      color: '#666'
-                    }}
-                  >
-                    📞
-                  </button>
-                  <button 
-                    onClick={() => console.log('📹 Video call clicked')}
-                    style={{
-                      padding: '12px',
-                      border: 'none',
-                      backgroundColor: '#f0f0f0',
-                      borderRadius: '50%',
-                      cursor: 'pointer',
-                      color: '#666'
-                    }}
-                  >
-                    📹
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ChatHeader 
+              chat={selectedChat}
+              onlineUsers={onlineUsers}
+              currentUser={currentUser}
+              onVideoCall={(chat) => console.log('📹 Video call clicked for:', chat)}
+              onVoiceCall={(chat) => console.log('📞 Voice call clicked for:', chat)}
+              onSearchToggle={() => console.log('🔍 Search toggled')}
+              onChatInfo={() => {
+                if (selectedChat?.type === 'group') {
+                  loadGroupDetails(selectedChat.id);
+                }
+              }}
+              onManageMembers={() => {
+                if (selectedChat?.type === 'group') {
+                  loadGroupDetails(selectedChat.id);
+                }
+              }}
+              onLeaveGroup={() => {
+                if (selectedChat?.type === 'group') {
+                  leaveExistingGroup(selectedChat.id);
+                }
+              }}
+            />
 
             {/* Messages */}
-            <div style={{ 
-              flex: 1, 
-              overflowY: 'auto', 
-              padding: '20px',
-              backgroundColor: '#f9f9f9'
-            }}>
-              {messages.length === 0 ? (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  height: '100%'
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '64px', marginBottom: '16px' }}>💭</div>
-                    <h3 style={{ fontSize: '20px', color: '#333', margin: '0 0 8px 0' }}>
-                      No messages yet
-                    </h3>
-                    <p style={{ color: '#666', margin: 0 }}>
-                      Start the conversation by sending a message
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                messages.map((msg, index) => {
-                  const isOwn = msg.senderId === currentUser.id;
-                  
-                  return (
-                    <div
-                      key={msg.id || index}
-                      style={{
-                        display: 'flex',
-                        justifyContent: isOwn ? 'flex-end' : 'flex-start',
-                        marginBottom: '16px'
-                      }}
-                    >
-                      <div style={{
-                        maxWidth: '70%',
-                        padding: '12px 16px',
-                        borderRadius: '16px',
-                        backgroundColor: isOwn ? '#0066cc' : '#fff',
-                        color: isOwn ? '#fff' : '#333',
-                        border: isOwn ? 'none' : '1px solid #ddd'
-                      }}>
-                        <p style={{ margin: 0, fontSize: '16px', lineHeight: '1.4' }}>
-                          {msg.text}
-                        </p>
-                        <div style={{ 
-                          marginTop: '4px', 
-                          fontSize: '12px', 
-                          color: isOwn ? 'rgba(255,255,255,0.7)' : '#999'
-                        }}>
-                          {formatTime(msg.timestamp)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
+            <MessageList
+              messages={messages}
+              currentUser={currentUser}
+              selectedChat={selectedChat}
+            />
 
             {/* Message Input */}
-            <div style={{ 
-              backgroundColor: '#fff', 
-              borderTop: '1px solid #ddd', 
-              padding: '20px'
-            }}>
-              {/* Emoji Picker */}
-              {showEmojiPicker && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '100px',
-                  right: '20px',
-                  width: '400px',
-                  height: '300px',
-                  backgroundColor: '#fff',
-                  border: '1px solid #ddd',
-                  borderRadius: '16px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  zIndex: 1000,
-                  overflow: 'hidden'
-                }}>
-                  {/* Emoji Picker Header */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #eee',
-                    backgroundColor: '#f9f9f9'
-                  }}>
-                    <h4 style={{ margin: 0, fontSize: '16px', color: '#333' }}>Choose Emoji</h4>
-                    <button
-                      onClick={() => setShowEmojiPicker(false)}
-                      style={{
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        fontSize: '18px',
-                        cursor: 'pointer',
-                        color: '#666'
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {/* Popular Emojis */}
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee' }}>
-                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px', fontWeight: 'bold' }}>
-                      Popular
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {popularEmojis.map(emoji => (
-                        <button
-                          key={emoji}
-                          onClick={() => {
-                            setMessage(prev => prev + emoji);
-                            setShowEmojiPicker(false);
-                          }}
-                          style={{
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            fontSize: '20px',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            borderRadius: '4px'
-                          }}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* All Emojis */}
-                  <div style={{ 
-                    height: '180px', 
-                    overflowY: 'auto', 
-                    padding: '12px 16px'
-                  }}>
-                    {Object.entries(emojiCategories).map(([category, emojis]) => (
-                      <div key={category} style={{ marginBottom: '16px' }}>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#666', 
-                          marginBottom: '8px', 
-                          fontWeight: 'bold',
-                          textTransform: 'capitalize'
-                        }}>
-                          {category}
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-                          {emojis.map(emoji => (
-                            <button
-                              key={emoji}
-                              onClick={() => {
-                                setMessage(prev => prev + emoji);
-                                setShowEmojiPicker(false);
-                              }}
-                              style={{
-                                border: 'none',
-                                backgroundColor: 'transparent',
-                                fontSize: '18px',
-                                cursor: 'pointer',
-                                padding: '4px',
-                                borderRadius: '4px'
-                              }}
-                              onMouseEnter={(e) => e.target.style.backgroundColor = '#f0f0f0'}
-                              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {/* Emoji Button */}
-                <button
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  style={{
-                    padding: '12px',
-                    border: 'none',
-                    backgroundColor: showEmojiPicker ? '#e3f2fd' : '#f0f0f0',
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    fontSize: '18px',
-                    color: '#666'
-                  }}
-                  title="Add emoji"
-                >
-                  😀
-                </button>
-
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => {
-                      console.log('📝 Message input changed:', e.target.value);
-                      setMessage(e.target.value);
-                    }}
-                    onKeyPress={(e) => {
-                      console.log('⌨️ Key pressed:', e.key);
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        sendMessage();
-                      }
-                    }}
-                    placeholder="Type a message..."
-                    style={{
-                      width: '100%',
-                      padding: '16px',
-                      border: '1px solid #ddd',
-                      borderRadius: '24px',
-                      fontSize: '16px',
-                      backgroundColor: '#f9f9f9',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                <button
-                  onClick={() => {
-                    console.log('📤 Send button clicked');
-                    sendMessage();
-                  }}
-                  disabled={!message.trim()}
-                  style={{
-                    padding: '16px',
-                    backgroundColor: message.trim() ? '#0066cc' : '#ccc',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    cursor: message.trim() ? 'pointer' : 'not-allowed',
-                    fontSize: '16px'
-                  }}
-                >
-                  ➤
-                </button>
-              </div>
-            </div>
+            <MessageInput
+              message={message}
+              setMessage={setMessage}
+              sendMessage={sendMessage}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+            />
           </>
         ) : (
           /* Welcome Screen */
-          <div style={{ 
-            flex: 1, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            backgroundColor: '#f9f9f9'
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '80px', marginBottom: '24px' }}>💬</div>
-              <h3 style={{ 
-                fontSize: '28px', 
-                color: '#333', 
-                margin: '0 0 16px 0',
-                fontWeight: 'bold'
-              }}>
+          <div className="welcome-screen">
+            <div className="welcome-content">
+              <div className="welcome-icon">💬</div>
+              <h3 className="welcome-title">
                 Welcome to UniChat ✨
               </h3>
-              <p style={{ fontSize: '18px', color: '#666', margin: 0 }}>
+              <p className="welcome-subtitle">
                 Select a conversation to start chatting
               </p>
             </div>
