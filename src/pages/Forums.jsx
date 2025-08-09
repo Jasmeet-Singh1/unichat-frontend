@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
 import './forum-styles.css';
+
 const Forums = ({ role }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [newPost, setNewPost] = useState({ title: '', body: '', image: '' });
+  const [newPost, setNewPost] = useState({ title: '', body: '', imageUrl: '', imageFile: null });
   const [submitting, setSubmitting] = useState(false);
+  const [commentTexts, setCommentTexts] = useState({});
+  const [submittingComment, setSubmittingComment] = useState({});
+  const [uploadMode, setUploadMode] = useState('url'); // 'url' or 'file'
 
   const getAuthToken = () => {
     return localStorage.getItem('token');
@@ -14,37 +18,28 @@ const Forums = ({ role }) => {
   const fetchPosts = async () => {
     try {
       console.log('Fetching posts from http://localhost:3001/api/forum...');
+      
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add auth token if available (for like status)
+      const token = getAuthToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch('http://localhost:3001/api/forum', {
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: headers
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response URL:', response.url);
-      console.log('Response headers:', response.headers.get('content-type'));
-      
-      const text = await response.text();
-      console.log('Raw response (first 200 chars):', text.substring(0, 200));
-      
       if (response.ok) {
-        if (!text.trim()) {
-          console.log('Empty response received');
-          setPosts([]);
-          return;
-        }
-        
-        try {
-          const data = JSON.parse(text);
-          console.log('Parsed data:', data);
-          setPosts(data);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          setError(`Server returned HTML instead of JSON. Response starts with: ${text.substring(0, 50)}...`);
-        }
+        const data = await response.json();
+        console.log('Parsed data:', data);
+        setPosts(data);
       } else {
-        console.error('Error response:', text);
-        setError(`Backend error (${response.status}): ${text.substring(0, 100)}...`);
+        console.error('Error response:', response.status);
+        setError(`Backend error (${response.status}). Check if your backend is running.`);
       }
     } catch (err) {
       console.error('Network error:', err);
@@ -52,6 +47,34 @@ const Forums = ({ role }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setError('Image file size must be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      setNewPost({ ...newPost, imageFile: file, imageUrl: '' });
+    }
+  };
+
+  const switchToFileUpload = () => {
+    setUploadMode('file');
+    setNewPost({ ...newPost, imageUrl: '', imageFile: null });
+  };
+
+  const switchToUrlUpload = () => {
+    setUploadMode('url');
+    setNewPost({ ...newPost, imageFile: null });
+    // Reset file input
+    const fileInput = document.getElementById('image-file-input');
+    if (fileInput) fileInput.value = '';
   };
 
   const handleCreatePost = async () => {
@@ -70,19 +93,32 @@ const Forums = ({ role }) => {
     setError('');
 
     try {
+      const formData = new FormData();
+      formData.append('title', newPost.title);
+      formData.append('body', newPost.body);
+      
+      if (uploadMode === 'file' && newPost.imageFile) {
+        formData.append('image', newPost.imageFile);
+      } else if (uploadMode === 'url' && newPost.imageUrl) {
+        formData.append('imageUrl', newPost.imageUrl);
+      }
+
       const response = await fetch('http://localhost:3001/api/forum', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newPost)
+        body: formData
       });
 
       if (response.ok) {
         const data = await response.json();
         setPosts([data.post, ...posts]);
-        setNewPost({ title: '', body: '', image: '' });
+        setNewPost({ title: '', body: '', imageUrl: '', imageFile: null });
+        setUploadMode('url');
+        // Reset file input
+        const fileInput = document.getElementById('image-file-input');
+        if (fileInput) fileInput.value = '';
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Failed to create post');
@@ -92,6 +128,51 @@ const Forums = ({ role }) => {
       console.error('Error creating post:', err);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    const commentText = commentTexts[postId];
+    if (!commentText || !commentText.trim()) {
+      setError('Comment cannot be empty');
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setError('You must be logged in to comment');
+      return;
+    }
+
+    setSubmittingComment({ ...submittingComment, [postId]: true });
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/forum/${postId}/comment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ text: commentText })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(posts.map(post => 
+          post.id === postId 
+            ? { ...post, comments: [...post.comments, data.comment] }
+            : post
+        ));
+        setCommentTexts({ ...commentTexts, [postId]: '' });
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Failed to add comment');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+      console.error('Error adding comment:', err);
+    } finally {
+      setSubmittingComment({ ...submittingComment, [postId]: false });
     }
   };
 
@@ -187,15 +268,62 @@ const Forums = ({ role }) => {
             />
           </div>
           
-          <div className="form-group">
-            <input
-              type="url"
-              placeholder="Optional image URL"
-              value={newPost.image}
-              onChange={(e) => setNewPost({ ...newPost, image: e.target.value })}
-              className="form-input"
-              disabled={submitting}
-            />
+          {/* Image Upload Options */}
+          <div className="image-upload-section">
+            <div className="upload-tabs">
+              <button 
+                type="button"
+                className={`upload-tab ${uploadMode === 'url' ? 'active' : ''}`}
+                onClick={switchToUrlUpload}
+                disabled={submitting}
+              >
+                🔗 Image URL
+              </button>
+              <button 
+                type="button"
+                className={`upload-tab ${uploadMode === 'file' ? 'active' : ''}`}
+                onClick={switchToFileUpload}
+                disabled={submitting}
+              >
+                📁 Upload File
+              </button>
+            </div>
+            
+            {uploadMode === 'url' ? (
+              <div className="form-group">
+                <input
+                  type="url"
+                  placeholder="Paste image URL here..."
+                  value={newPost.imageUrl}
+                  onChange={(e) => setNewPost({ ...newPost, imageUrl: e.target.value })}
+                  className="form-input"
+                  disabled={submitting}
+                />
+              </div>
+            ) : (
+              <div className="form-group">
+                <input
+                  id="image-file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  className="file-input"
+                  disabled={submitting}
+                />
+                {newPost.imageFile && (
+                  <div className="file-preview">
+                    <span>📷 {newPost.imageFile.name}</span>
+                    <button 
+                      type="button"
+                      onClick={() => setNewPost({ ...newPost, imageFile: null })}
+                      className="remove-file"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           <button
@@ -250,7 +378,10 @@ const Forums = ({ role }) => {
                 {/* Post Image */}
                 {post.image && (
                   <img
-                    src={post.image}
+                    src={post.image.startsWith('/uploads') 
+                      ? `http://localhost:3001${post.image}` 
+                      : post.image
+                    }
                     alt="Post content"
                     className="post-image"
                     onError={(e) => {
@@ -271,13 +402,51 @@ const Forums = ({ role }) => {
                   
                   <button className="action-btn">
                     <span>💬</span>
-                    <span>Comment</span>
+                    <span>{post.comments?.length || 0} Comments</span>
                   </button>
                   
                   <button className="action-btn">
                     <span>⚠️</span>
                     <span>Report</span>
                   </button>
+                </div>
+
+                {/* Comments Section */}
+                <div className="comments-section">
+                  {post.comments && post.comments.length > 0 && (
+                    <div className="comments-list">
+                      {post.comments.map((comment) => (
+                        <div key={comment.id} className="comment">
+                          <div className="comment-author">{comment.author}</div>
+                          <div className="comment-text">{comment.text}</div>
+                          <div className="comment-time">{formatTimeAgo(comment.createdAt)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Add Comment */}
+                  <div className="add-comment">
+                    <input
+                      type="text"
+                      placeholder="Write a comment..."
+                      value={commentTexts[post.id] || ''}
+                      onChange={(e) => setCommentTexts({ ...commentTexts, [post.id]: e.target.value })}
+                      className="comment-input"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddComment(post.id);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => handleAddComment(post.id)}
+                      disabled={submittingComment[post.id]}
+                      className="comment-submit-btn"
+                    >
+                      {submittingComment[post.id] ? '...' : 'Post'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
