@@ -16,7 +16,7 @@ import Logout from "./pages/Logout";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Browse from "./pages/Browse";
-import Notification from "./components/Notification"; // ✅ This import path is correct
+import Notification from "./components/Notification";
 import MentorRequest from "./pages/MentorRequest";
 import AlumniDashboard from "./pages/AlumniDashboard";
 import Forums from "./pages/Forums";
@@ -29,6 +29,9 @@ import AlumniSetting from "./pages/AlumniSetting";
 import AlumniViewEvents from "./pages/AlumniViewEvents";
 import Layout from "./pages/Layout";
 import AlumniCreateForums from "./pages/AlumniCreateForums";
+
+// 🆕 Import Admin Portal
+import AdminPortal from "./admin/AdminPortal";
 
 const WithNavbar = ({ children, role }) => (
   <div
@@ -66,23 +69,36 @@ function App() {
     return children ? children : <Outlet />;
   };
 
+  // 🆕 Check if current path is admin route
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   useEffect(() => {
     const storedRole = localStorage.getItem("role");
     const allowedPublicRoutes = ["/login", "/signup", "/logout"];
-    if (storedRole) {
-      setRole(storedRole);
-    } else if (!allowedPublicRoutes.includes(location.pathname)) {
-      navigate("/login");
+    
+    // 🆕 Don't redirect admin routes to login - let AdminPortal handle its own auth
+    if (!isAdminRoute) {
+      if (storedRole) {
+        setRole(storedRole);
+      } else if (!allowedPublicRoutes.includes(location.pathname)) {
+        navigate("/login");
+      }
     }
+    
     console.log("Role retrieved from localStorage:", storedRole);
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, isAdminRoute]);
 
   return (
     <Routes>
+      {/* 🆕 Admin Routes - Must come FIRST to avoid conflicts */}
+      <Route path="/admin/*" element={<AdminPortal />} />
+      
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/logout" element={<Logout />} />
+      
+      {/* Protected User Routes */}
       <Route element={<ProtectedRoute />}>
         {/* Alumni */}
         {role === "Alumni" ? (
@@ -95,7 +111,6 @@ function App() {
               <Route path="/mentor" element={<AlumniMentorStudent />} />
               <Route path="/settings" element={<AlumniSetting />} />
               <Route path="/events" element={<AlumniViewEvents />} />
-              {/* Add notifications route for Alumni too */}
               <Route
                 path="/notifications"
                 element={<Notification role={role} />}
@@ -174,6 +189,7 @@ function App() {
           </>
         )}
       </Route>
+      
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,5 +1,8 @@
+
+// src/admin/pages/FlaggedContent.js
 import React, { useState } from 'react';
-import { AlertTriangle, Eye, Trash2, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Eye, Trash2, CheckCircle, MessageSquare, User, Clock, Flag } from 'lucide-react';
+import '../styles/AdminPortal.css';
 
 const FlaggedContent = () => {
   const [reports, setReports] = useState([
@@ -7,28 +10,45 @@ const FlaggedContent = () => {
       id: 'R001',
       reportedUser: 'Amit Dev',
       reportedBy: 'Sarah Johnson',
-      message: '"You\'re just dumb, stop asking."',
+      message: 'You\'re just dumb, stop asking stupid questions.',
       reason: 'Bullying / Harassment',
-      timestamp: '2025-06-22 14:25',
-      status: 'Pending'
+      timestamp: '2025-01-15 14:25',
+      status: 'Pending',
+      priority: 'High',
+      chatroom: 'General Discussion'
     },
     {
       id: 'R002',
       reportedUser: 'Lena Huang',
       reportedBy: 'Mike Chen',
-      message: '"Here\'s a shady link: bit.ly/fakeapp"',
+      message: 'Check out this amazing deal: bit.ly/suspicious-link',
       reason: 'Spam / Phishing',
-      timestamp: '2025-06-22 13:47',
-      status: 'Pending'
+      timestamp: '2025-01-15 13:47',
+      status: 'Pending',
+      priority: 'High',
+      chatroom: 'Career Advice'
     },
     {
       id: 'R003',
       reportedUser: 'Alex Thompson',
       reportedBy: 'Emma Wilson',
-      message: '"This platform is terrible, everyone should leave"',
+      message: 'This platform is terrible, everyone should just leave and find something better.',
       reason: 'Inappropriate Content',
-      timestamp: '2025-06-21 16:30',
-      status: 'Reviewed'
+      timestamp: '2025-01-14 16:30',
+      status: 'Reviewed',
+      priority: 'Medium',
+      chatroom: 'General Discussion'
+    },
+    {
+      id: 'R004',
+      reportedUser: 'John Smith',
+      reportedBy: 'Lisa Chen',
+      message: 'Can you help me with calculus homework?',
+      reason: 'False Report',
+      timestamp: '2025-01-14 10:15',
+      status: 'Dismissed',
+      priority: 'Low',
+      chatroom: 'Study Groups'
     }
   ]);
 
@@ -36,10 +56,14 @@ const FlaggedContent = () => {
     alert(`Viewing user profile: ${userId}`);
   };
 
+  const handleViewMessage = (reportId) => {
+    alert(`Viewing full message context for report: ${reportId}`);
+  };
+
   const handleDeleteMessage = (reportId) => {
     if (window.confirm('Are you sure you want to delete this message?')) {
       setReports(reports.map(report => 
-        report.id === reportId ? { ...report, status: 'Deleted' } : report
+        report.id === reportId ? { ...report, status: 'Message Deleted' } : report
       ));
     }
   };
@@ -50,131 +74,226 @@ const FlaggedContent = () => {
     ));
   };
 
-  const getReasonBadgeColor = (reason) => {
-    switch (reason) {
-      case 'Bullying / Harassment':
-        return 'bg-red-100 text-red-800';
-      case 'Spam / Phishing':
-        return 'bg-orange-100 text-orange-800';
-      case 'Inappropriate Content':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleDismiss = (reportId) => {
+    setReports(reports.map(report => 
+      report.id === reportId ? { ...report, status: 'Dismissed' } : report
+    ));
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Reviewed':
-        return 'bg-green-100 text-green-800';
-      case 'Deleted':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getReasonBadgeClass = (reason) => {
+    const classes = {
+      'Bullying / Harassment': 'badge-red',
+      'Spam / Phishing': 'badge-orange',
+      'Inappropriate Content': 'badge-purple',
+      'False Report': 'badge-gray'
+    };
+    return classes[reason] || 'badge-gray';
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const classes = {
+      'Pending': 'badge-yellow',
+      'Reviewed': 'badge-green',
+      'Message Deleted': 'badge-red',
+      'Dismissed': 'badge-gray'
+    };
+    return classes[status] || 'badge-gray';
+  };
+
+  const getPriorityBadgeClass = (priority) => {
+    const classes = {
+      'High': 'badge-red',
+      'Medium': 'badge-yellow',
+      'Low': 'badge-green'
+    };
+    return classes[priority] || 'badge-gray';
   };
 
   const statusCounts = {
+    total: reports.length,
     pending: reports.filter(report => report.status === 'Pending').length,
     reviewed: reports.filter(report => report.status === 'Reviewed').length,
-    deleted: reports.filter(report => report.status === 'Deleted').length
+    deleted: reports.filter(report => report.status === 'Message Deleted').length,
+    dismissed: reports.filter(report => report.status === 'Dismissed').length
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="theme-bg-dropdown rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold theme-text-header mb-2">🚨 Flagged Content Review</h2>
-        <p className="theme-text-subtitle">Moderate reported posts and take action if necessary.</p>
+    <div className="flex flex-col gap-6">
+      {/* Page Header */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title flex items-center gap-2">
+            <AlertTriangle size={24} />
+            Content Moderation
+          </h2>
+          <p className="card-subtitle">
+            Review reported messages and take appropriate moderation actions
+          </p>
+        </div>
       </div>
 
-      {/* Reported Messages Section */}
-      <div className="theme-bg-dropdown rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold theme-text-header mb-4">Reported Messages</h3>
-        <p className="text-sm theme-text-subtitle mb-6">Total reports: {reports.length}</p>
+     {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Total Reports</p>
+              <p className="text-2xl font-bold text-primary">{statusCounts.total}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-blue)', opacity: 0.1}}>
+              <Flag size={24} style={{color: 'var(--accent-blue)'}} />
+            </div>
+          </div>
+        </div>
 
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Pending Review</p>
+              <p className="text-2xl font-bold" style={{color: 'var(--accent-warning)'}}>{statusCounts.pending}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-warning)', opacity: 0.1}}>
+              <Clock size={24} style={{color: 'var(--accent-warning)'}} />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Reviewed</p>
+              <p className="text-2xl font-bold" style={{color: 'var(--accent-success)'}}>{statusCounts.reviewed}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-success)', opacity: 0.1}}>
+              <CheckCircle size={24} style={{color: 'var(--accent-success)'}} />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Actions Taken</p>
+              <p className="text-2xl font-bold" style={{color: 'var(--accent-danger)'}}>{statusCounts.deleted}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-danger)', opacity: 0.1}}>
+              <Trash2 size={24} style={{color: 'var(--accent-danger)'}} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Reports Table */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Reported Messages</h3>
+          <p className="card-subtitle">
+            {statusCounts.pending} reports require immediate attention
+          </p>
+        </div>
+        
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="theme-bg-footer">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Reported Message
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Reason
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Timestamp
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Actions
-                </th>
+                <th>Report Details</th>
+                <th>Reported Message</th>
+                <th>Reason & Priority</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody className="theme-bg-dropdown divide-y divide-gray-200">
+            <tbody>
               {reports.map((report) => (
-                <tr key={report.id} className="theme-bg-dropdown-hover transition-colors duration-200">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium theme-text-header">{report.reportedUser}</div>
-                      <div className="text-sm theme-text-subtitle">Reported by: {report.reportedBy}</div>
+                <tr key={report.id}>
+                  <td>
+                    <div className="flex items-start gap-3">
+                      <div className="user-avatar">
+                        <User size={16} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-primary">{report.reportedUser}</div>
+                        <div className="text-sm text-secondary">
+                          Reported by: {report.reportedBy}
+                        </div>
+                        <div className="text-xs text-muted">
+                          in {report.chatroom}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted mt-1">
+                          <Clock size={12} />
+                          {report.timestamp}
+                        </div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td>
                     <div className="max-w-xs">
-                      <div className="text-sm theme-text-header mb-1">{report.message}</div>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(report.status)}`}>
-                        {report.status}
+                      <div className="text-sm text-primary mb-2 p-3 rounded-lg" style={{backgroundColor: 'var(--bg-tertiary)'}}>
+                        <MessageSquare size={14} className="inline mr-1" />
+                        "{report.message}"
+                      </div>
+                      <button 
+                        onClick={() => handleViewMessage(report.id)}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        View full context
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex flex-col gap-2">
+                      <span className={`badge ${getReasonBadgeClass(report.reason)}`}>
+                        {report.reason}
+                      </span>
+                      <span className={`badge ${getPriorityBadgeClass(report.priority)}`}>
+                        {report.priority} Priority
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getReasonBadgeColor(report.reason)}`}>
-                      {report.reason}
+                  <td>
+                    <span className={`badge ${getStatusBadgeClass(report.status)}`}>
+                      {report.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm theme-text-subtitle">
-                    {report.timestamp}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {report.status === 'Pending' ? (
-                      <div className="flex flex-col space-y-1">
-                        <button
-                          onClick={() => handleViewUser(report.reportedUser)}
-                          className="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded text-white theme-bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          View User
-                        </button>
-                        <button
-                          onClick={() => handleDeleteMessage(report.id)}
-                          className="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded text-white theme-bg-report-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          Delete Message
-                        </button>
-                        <button
-                          onClick={() => handleMarkReviewed(report.id)}
-                          className="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Mark Reviewed
-                        </button>
-                      </div>
-                    ) : (
+                  <td>
+                    <div className="flex flex-col gap-2">
                       <button
                         onClick={() => handleViewUser(report.reportedUser)}
-                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs leading-4 font-medium rounded text-white theme-bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                        className="btn btn-ghost btn-sm"
+                        title="View user profile"
                       >
-                        <Eye className="w-3 h-3 mr-1" />
-                        View User
+                        <Eye size={16} />
+                        <span className="text-xs">View User</span>
                       </button>
-                    )}
+                      
+                      {report.status === 'Pending' && (
+                        <>
+                          <button
+                            onClick={() => handleDeleteMessage(report.id)}
+                            className="btn btn-danger btn-sm"
+                            title="Delete message"
+                          >
+                            <Trash2 size={16} />
+                            <span className="text-xs">Delete</span>
+                          </button>
+                          <button
+                            onClick={() => handleMarkReviewed(report.id)}
+                            className="btn btn-success btn-sm"
+                            title="Mark as reviewed"
+                          >
+                            <CheckCircle size={16} />
+                            <span className="text-xs">Approve</span>
+                          </button>
+                          <button
+                            onClick={() => handleDismiss(report.id)}
+                            className="btn btn-ghost btn-sm"
+                            title="Dismiss report"
+                          >
+                            <span className="text-xs">Dismiss</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -183,19 +302,52 @@ const FlaggedContent = () => {
         </div>
       </div>
 
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="theme-bg-dropdown rounded-lg shadow p-6 text-center">
-          <div className="text-3xl font-bold text-yellow-600 mb-2">{statusCounts.pending}</div>
-          <div className="text-sm font-medium theme-text-subtitle">Pending Review</div>
+      {/* Moderation Guidelines */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Moderation Guidelines</h3>
+          <p className="card-subtitle">Quick reference for content review</p>
         </div>
-        <div className="theme-bg-dropdown rounded-lg shadow p-6 text-center">
-          <div className="text-3xl font-bold text-green-600 mb-2">{statusCounts.reviewed}</div>
-          <div className="text-sm font-medium theme-text-subtitle">Reviewed</div>
-        </div>
-        <div className="theme-bg-dropdown rounded-lg shadow p-6 text-center">
-          <div className="text-3xl font-bold text-red-600 mb-2">{statusCounts.deleted}</div>
-          <div className="text-sm font-medium theme-text-subtitle">Deleted</div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-lg" style={{backgroundColor: 'var(--bg-secondary)'}}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full" style={{backgroundColor: 'var(--accent-danger)'}}></div>
+              <span className="font-medium text-primary">High Priority</span>
+            </div>
+            <ul className="text-sm text-secondary space-y-1">
+              <li>• Harassment or bullying</li>
+              <li>• Spam or phishing attempts</li>
+              <li>• Hate speech or discrimination</li>
+              <li>• Threats or violence</li>
+            </ul>
+          </div>
+          
+          <div className="p-4 rounded-lg" style={{backgroundColor: 'var(--bg-secondary)'}}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full" style={{backgroundColor: 'var(--accent-warning)'}}></div>
+              <span className="font-medium text-primary">Medium Priority</span>
+            </div>
+            <ul className="text-sm text-secondary space-y-1">
+              <li>• Inappropriate content</li>
+              <li>• Off-topic discussions</li>
+              <li>• Excessive self-promotion</li>
+              <li>• Minor policy violations</li>
+            </ul>
+          </div>
+          
+          <div className="p-4 rounded-lg" style={{backgroundColor: 'var(--bg-secondary)'}}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full" style={{backgroundColor: 'var(--accent-success)'}}></div>
+              <span className="font-medium text-primary">Low Priority</span>
+            </div>
+            <ul className="text-sm text-secondary space-y-1">
+              <li>• False reports</li>
+              <li>• Minor disagreements</li>
+              <li>• Formatting issues</li>
+              <li>• Duplicate content</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -203,4 +355,4 @@ const FlaggedContent = () => {
 };
 
 export default FlaggedContent;
-
+        

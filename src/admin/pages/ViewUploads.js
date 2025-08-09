@@ -1,5 +1,7 @@
+// src/admin/pages/ViewUploads.js
 import React, { useState } from 'react';
-import { FileText, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Eye, CheckCircle, XCircle, Download, Clock, User } from 'lucide-react';
+import '../styles/AdminPortal.css';
 
 const ViewUploads = () => {
   const [documents, setDocuments] = useState([
@@ -7,16 +9,20 @@ const ViewUploads = () => {
       id: 'D001',
       userName: 'Sarah Lee',
       userRole: 'Mentor',
-      documentType: 'View ID',
+      documentType: 'Teaching Certificate',
+      fileName: 'teaching_cert_sarah_lee.pdf',
       uploadDate: '2025-01-15',
+      fileSize: '2.4 MB',
       status: 'Pending'
     },
     {
       id: 'D002',
       userName: 'James Champagne',
       userRole: 'Alumni',
-      documentType: 'View Certificate',
+      documentType: 'Degree Certificate',
+      fileName: 'degree_james_champagne.pdf',
       uploadDate: '2025-01-14',
+      fileSize: '1.8 MB',
       status: 'Approved'
     },
     {
@@ -24,16 +30,30 @@ const ViewUploads = () => {
       userName: 'Michael Johnson',
       userRole: 'Student',
       documentType: 'Student ID',
+      fileName: 'student_id_michael.jpg',
       uploadDate: '2025-01-13',
+      fileSize: '856 KB',
       status: 'Pending'
     },
     {
       id: 'D004',
       userName: 'Lisa Wang',
       userRole: 'Mentor',
-      documentType: 'Certification',
+      documentType: 'Professional License',
+      fileName: 'prof_license_lisa_wang.pdf',
       uploadDate: '2025-01-12',
+      fileSize: '3.2 MB',
       status: 'Rejected'
+    },
+    {
+      id: 'D005',
+      userName: 'Alex Rodriguez',
+      userRole: 'Alumni',
+      documentType: 'Work Experience Letter',
+      fileName: 'work_exp_alex.pdf',
+      uploadDate: '2025-01-11',
+      fileSize: '1.1 MB',
+      status: 'Approved'
     }
   ]);
 
@@ -49,122 +69,210 @@ const ViewUploads = () => {
     ));
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'Approved':
-        return 'bg-green-100 text-green-800';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleViewDocument = (docId) => {
+    alert(`Opening document viewer for ${docId}`);
   };
 
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case 'Student':
-        return 'bg-blue-100 text-blue-800';
-      case 'Mentor':
-        return 'bg-purple-100 text-purple-800';
-      case 'Alumni':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleDownload = (docId, fileName) => {
+    alert(`Downloading ${fileName}`);
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const classes = {
+      'Approved': 'badge-green',
+      'Pending': 'badge-yellow',
+      'Rejected': 'badge-red'
+    };
+    return classes[status] || 'badge-gray';
+  };
+
+  const getRoleBadgeClass = (role) => {
+    const classes = {
+      'Student': 'badge-blue',
+      'Mentor': 'badge-purple',
+      'Alumni': 'badge-orange'
+    };
+    return classes[role] || 'badge-gray';
+  };
+
+  const getFileIcon = (fileName) => {
+    const extension = fileName.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+      return '🖼️';
+    } else if (['pdf'].includes(extension)) {
+      return '📄';
+    } else if (['doc', 'docx'].includes(extension)) {
+      return '📝';
     }
+    return '📎';
   };
 
   const statusCounts = {
+    total: documents.length,
     pending: documents.filter(doc => doc.status === 'Pending').length,
     approved: documents.filter(doc => doc.status === 'Approved').length,
     rejected: documents.filter(doc => doc.status === 'Rejected').length
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="theme-bg-dropdown rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold theme-text-header mb-2">📄 Uploaded Documents</h2>
-        <p className="theme-text-subtitle">Here are recent document uploads for verification.</p>
+    <div className="flex flex-col gap-6">
+      {/* Page Header */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title flex items-center gap-2">
+            <FileText size={24} />
+            Document Verification
+          </h2>
+          <p className="card-subtitle">
+            Review and verify uploaded documents from users
+          </p>
+        </div>
       </div>
 
-      {/* Document Verification Section */}
-      <div className="theme-bg-dropdown rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold theme-text-header mb-4">Document Verification</h3>
-        <p className="text-sm theme-text-subtitle mb-6">Total documents: {documents.length}</p>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4">
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Total Documents</p>
+              <p className="text-2xl font-bold text-primary">{statusCounts.total}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-blue)', opacity: 0.1}}>
+              <FileText size={24} style={{color: 'var(--accent-blue)'}} />
+            </div>
+          </div>
+        </div>
 
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Pending Review</p>
+              <p className="text-2xl font-bold" style={{color: 'var(--accent-warning)'}}>{statusCounts.pending}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-warning)', opacity: 0.1}}>
+              <Clock size={24} style={{color: 'var(--accent-warning)'}} />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Approved</p>
+              <p className="text-2xl font-bold" style={{color: 'var(--accent-success)'}}>{statusCounts.approved}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-success)', opacity: 0.1}}>
+              <CheckCircle size={24} style={{color: 'var(--accent-success)'}} />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-secondary mb-1">Rejected</p>
+              <p className="text-2xl font-bold" style={{color: 'var(--accent-danger)'}}>{statusCounts.rejected}</p>
+            </div>
+            <div className="p-3 rounded-lg" style={{backgroundColor: 'var(--accent-danger)', opacity: 0.1}}>
+              <XCircle size={24} style={{color: 'var(--accent-danger)'}} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Documents Table */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Recent Document Uploads</h3>
+          <p className="card-subtitle">
+            {statusCounts.pending} documents pending your review
+          </p>
+        </div>
+        
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="theme-bg-footer">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  User Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Document
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium theme-text-subtitle uppercase tracking-wider">
-                  Action
-                </th>
+                <th>User & Document</th>
+                <th>File Details</th>
+                <th>Upload Date</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody className="theme-bg-dropdown divide-y divide-gray-200">
+            <tbody>
               {documents.map((doc) => (
-                <tr key={doc.id} className="theme-bg-dropdown-hover transition-colors duration-200">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium theme-text-header">{doc.userName}</div>
-                      <div className="text-sm theme-text-subtitle">Uploaded: {doc.uploadDate}</div>
+                <tr key={doc.id}>
+                  <td>
+                    <div className="flex items-start gap-3">
+                      <div className="user-avatar">
+                        <User size={16} />
+                      </div>
+                      <div>
+                        <div className="font-medium text-primary">{doc.userName}</div>
+                        <span className={`badge ${getRoleBadgeClass(doc.userRole)} mb-1`}>
+                          {doc.userRole}
+                        </span>
+                        <div className="text-sm text-secondary">{doc.documentType}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(doc.userRole)}`}>
-                      {doc.userRole}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Eye className="w-4 h-4 theme-text-primary mr-2" />
-                      <span className="text-sm theme-text-primary cursor-pointer hover:underline">
-                        {doc.documentType}
-                      </span>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getFileIcon(doc.fileName)}</span>
+                      <div>
+                        <div className="text-sm font-medium text-primary">{doc.fileName}</div>
+                        <div className="text-xs text-muted">{doc.fileSize}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(doc.status)}`}>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <Clock size={16} className="text-muted" />
+                      <span className="text-sm text-primary">{doc.uploadDate}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`badge ${getStatusBadgeClass(doc.status)}`}>
                       {doc.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {doc.status === 'Pending' ? (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleApprove(doc.id)}
-                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(doc.id)}
-                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white theme-bg-report-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </button>
-                      </div>
-                    ) : doc.status === 'Approved' ? (
-                      <span className="text-green-600 font-medium">✓ Approved</span>
-                    ) : (
-                      <span className="text-red-600 font-medium">✗ Rejected</span>
-                    )}
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewDocument(doc.id)}
+                        className="btn btn-ghost btn-sm"
+                        title="View document"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDownload(doc.id, doc.fileName)}
+                        className="btn btn-ghost btn-sm"
+                        title="Download document"
+                      >
+                        <Download size={16} />
+                      </button>
+                      
+                      {doc.status === 'Pending' && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(doc.id)}
+                            className="btn btn-success btn-sm"
+                            title="Approve document"
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleReject(doc.id)}
+                            className="btn btn-danger btn-sm"
+                            title="Reject document"
+                          >
+                            <XCircle size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -173,19 +281,35 @@ const ViewUploads = () => {
         </div>
       </div>
 
-      {/* Summary Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="theme-bg-dropdown rounded-lg shadow p-6 text-center">
-          <div className="text-3xl font-bold text-yellow-600 mb-2">{statusCounts.pending}</div>
-          <div className="text-sm font-medium theme-text-subtitle">Pending</div>
+      {/* Quick Actions */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title">Document Management Actions</h3>
+          <p className="card-subtitle">Common verification tasks</p>
         </div>
-        <div className="theme-bg-dropdown rounded-lg shadow p-6 text-center">
-          <div className="text-3xl font-bold text-green-600 mb-2">{statusCounts.approved}</div>
-          <div className="text-sm font-medium theme-text-subtitle">Approved</div>
-        </div>
-        <div className="theme-bg-dropdown rounded-lg shadow p-6 text-center">
-          <div className="text-3xl font-bold text-red-600 mb-2">{statusCounts.rejected}</div>
-          <div className="text-sm font-medium theme-text-subtitle">Rejected</div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="btn btn-ghost p-6 h-auto flex-col items-center gap-3">
+            <Clock size={24} />
+            <div className="text-center">
+              <div className="font-medium">Review Pending</div>
+              <div className="text-sm text-secondary">{statusCounts.pending} documents</div>
+            </div>
+          </button>
+          <button className="btn btn-ghost p-6 h-auto flex-col items-center gap-3">
+            <CheckCircle size={24} />
+            <div className="text-center">
+              <div className="font-medium">Bulk Approve</div>
+              <div className="text-sm text-secondary">Select multiple documents</div>
+            </div>
+          </button>
+          <button className="btn btn-ghost p-6 h-auto flex-col items-center gap-3">
+            <Download size={24} />
+            <div className="text-center">
+              <div className="font-medium">Export Report</div>
+              <div className="text-sm text-secondary">Download verification summary</div>
+            </div>
+          </button>
         </div>
       </div>
     </div>
@@ -193,4 +317,3 @@ const ViewUploads = () => {
 };
 
 export default ViewUploads;
-

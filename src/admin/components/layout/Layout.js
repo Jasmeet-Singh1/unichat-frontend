@@ -1,137 +1,193 @@
-import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
+import React, { useState, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
+import { 
+  BarChart3, Users, FileText, AlertTriangle, Calendar, Mail, 
+  Settings, Sun, Moon, ChevronDown, User, LogOut, Home, Menu, X 
+} from 'lucide-react';
+import { ThemeContext } from '../../AdminPortal';
+import '../../styles/Layout.css';
 
 const Layout = ({ children }) => {
-  const [chatOpen, setChatOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { isDark, toggleTheme } = useContext(ThemeContext);
+  const location = useLocation();
 
-  // Add purple theme styles
-  const layoutStyles = {
-    container: {
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 25%, #ddd6fe 50%, #f3e8ff 75%, #faf5ff 100%)',
-      minHeight: '100vh',
+  const navigationItems = [
+    { 
+      title: 'Overview',
+      items: [
+        { id: 'dashboard', name: 'Dashboard', path: '/admin/dashboard', icon: BarChart3 }
+      ]
     },
-    chatOverlay: {
-      position: 'fixed',
-      top: '0',
-      right: chatOpen ? '0' : '-400px',
-      width: '400px',
-      height: '100vh',
-      background: 'rgba(255, 255, 255, 0.95)',
-      backdropFilter: 'blur(20px)',
-      borderLeft: '1px solid rgba(139, 92, 246, 0.2)',
-      transition: 'right 0.3s ease',
-      zIndex: 1000,
-      boxShadow: '-4px 0 20px rgba(139, 92, 246, 0.3)',
-      display: 'flex',
-      flexDirection: 'column',
+    {
+      title: 'Management',
+      items: [
+        { id: 'users', name: 'Manage Users', path: '/admin/manage-users', icon: Users },
+        { id: 'uploads', name: 'View Uploads', path: '/admin/view-uploads', icon: FileText },
+        { id: 'events', name: 'Event Management', path: '/admin/event-management', icon: Calendar }
+      ]
     },
-    chatToggle: {
-      position: 'fixed',
-      bottom: '20px',
-      right: '20px',
-      background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-      color: 'white',
-      border: 'none',
-      padding: '16px 20px',
-      borderRadius: '50px',
-      cursor: 'pointer',
-      fontWeight: '600',
-      boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)',
-      zIndex: 1001,
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '16px',
+    {
+      title: 'Moderation',
+      items: [
+        { id: 'flagged', name: 'Flagged Content', path: '/admin/flagged-content', icon: AlertTriangle },
+        { id: 'inbox', name: 'Admin Inbox', path: '/admin/admin-inbox', icon: Mail }
+      ]
     },
-    overlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.2)',
-      zIndex: 999,
-      display: chatOpen ? 'block' : 'none',
+    {
+      title: 'System',
+      items: [
+        { id: 'settings', name: 'Settings', path: '/admin/settings', icon: Settings }
+      ]
+    }
+  ];
+
+  const getPageTitle = () => {
+    const path = location.pathname;
+    const titles = {
+      '/admin/dashboard': 'Dashboard',
+      '/admin/manage-users': 'Manage Users',
+      '/admin/view-uploads': 'View Uploads',
+      '/admin/flagged-content': 'Flagged Content',
+      '/admin/event-management': 'Event Management',
+      '/admin/admin-inbox': 'Admin Inbox',
+      '/admin/settings': 'Settings'
+    };
+    return titles[path] || 'Dashboard';
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path || 
+           (path === '/admin/dashboard' && location.pathname === '/admin/');
+  };
+
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+      localStorage.removeItem('authToken');
+      window.location.href = '/';
     }
   };
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   return (
-    <div className="flex h-screen" style={layoutStyles.container}>
-      {/* Chat Toggle Button */}
-      <button
-        style={layoutStyles.chatToggle}
-        onClick={() => setChatOpen(!chatOpen)}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.05)';
-          e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
-        }}
-      >
-        💬 {chatOpen ? 'Close Chat' : 'Open Chat'}
-      </button>
+    <div className="admin-layout">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={closeMobileMenu} />
+      )}
 
-      {/* Background Overlay */}
-      <div
-        style={layoutStyles.overlay}
-        onClick={() => setChatOpen(false)}
-      />
-
-      {/* Chat Sidebar */}
-      <div style={layoutStyles.chatOverlay}>
-        {/* Chat Header */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid rgba(139, 92, 246, 0.2)',
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          color: 'white',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '600' }}>UniChat</h3>
-              <p style={{ margin: '0', fontSize: '14px', opacity: '0.9' }}>Admin Chat Portal</p>
+      {/* Sidebar */}
+      <aside className={`admin-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <a href="/admin/dashboard" className="sidebar-brand">
+            <div className="brand-icon">
+              <BarChart3 size={20} color="white" />
             </div>
-            <button
-              onClick={() => setChatOpen(false)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                color: 'white',
-                padding: '8px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-              }}
+            <span className="brand-text">UNICHAT</span>
+          </a>
+        </div>
+
+        <nav className="sidebar-nav">
+          {navigationItems.map((section) => (
+            <div key={section.title} className="nav-section">
+              <div className="nav-section-title">{section.title}</div>
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <a
+                    key={item.id}
+                    href={item.path}
+                    className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
+                    onClick={closeMobileMenu}
+                  >
+                    <Icon className="nav-icon" size={20} />
+                    {item.name}
+                  </a>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <p className="sidebar-footer-text">Unichat Admin Portal</p>
+          <p className="sidebar-version">v1.0.0</p>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="main-content">
+        {/* Header */}
+        <header className="admin-header">
+          <div className="header-left">
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
-              ✕
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
+            
+            <div className="header-breadcrumb">
+              <span className="text-sm font-medium text-muted">UNICHAT</span>
+              <span className="breadcrumb-separator">|</span>
+              <h1 className="header-title">{getPageTitle()}</h1>
+            </div>
           </div>
-        </div>
 
-        {/* Chat Content */}
-        <div style={{ flex: 1, padding: '20px', overflow: 'auto' }}>
-          <div style={{ textAlign: 'center', color: '#6b7280', marginTop: '100px' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>💬</div>
-            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>Chat Coming Soon!</h3>
-            <p style={{ fontSize: '14px', opacity: '0.8' }}>Connect with users in real-time</p>
-            <p style={{ fontSize: '12px', marginTop: '16px', opacity: '0.6' }}>
-              Chat component will be integrated here
-            </p>
+          <div className="header-right">
+            <div className="header-actions">
+              <button className="theme-toggle-btn" onClick={toggleTheme}>
+                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+
+              <div className={`user-menu ${isUserMenuOpen ? 'open' : ''}`}>
+                <button
+                  className="user-menu-trigger"
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                >
+                  <div className="user-avatar">
+                    <User size={14} />
+                  </div>
+                  <span>Admin Portal</span>
+                  <ChevronDown className="chevron-icon" size={16} />
+                </button>
+
+                {isUserMenuOpen && (
+                  <>
+                    <div className="dropdown-overlay" onClick={() => setIsUserMenuOpen(false)} />
+                    <div className="user-dropdown">
+                      <div className="dropdown-header">
+                        <p className="dropdown-user-name">Admin User</p>
+                        <p className="dropdown-user-email">admin@unichat.com</p>
+                      </div>
+                      
+                      <div className="dropdown-menu">
+                        <a href="/" className="dropdown-item">
+                          <Home size={18} />
+                          Go to Main Site
+                        </a>
+                        
+                        <div className="dropdown-divider" />
+                        
+                        <button onClick={handleLogout} className="dropdown-item danger">
+                          <LogOut size={18} />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Main Layout */}
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6" style={{
-          background: 'transparent'
-        }}>
+        {/* Content Area */}
+        <main className="content-area">
           {children}
         </main>
       </div>
