@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { useUnreadCounts } from './useUnreadCounts';
 
 const Navbar = ({ role }) => {
-  const safeRole = (role || "mentor").toLowerCase();
-  const isStudent = safeRole === "student";
-  const isMentor = safeRole === "mentor";
+  const safeRole = (role || 'mentor').toLowerCase();
+  const isStudent = safeRole === 'student';
+  const isMentor = safeRole === 'mentor';
 
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState('light');
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCounts();
 
   useEffect(() => {
@@ -14,7 +14,7 @@ const Navbar = ({ role }) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "maroon" : "light"));
+    setTheme((prev) => (prev === 'light' ? 'maroon' : 'light'));
   };
 
   return (
@@ -189,14 +189,17 @@ const Navbar = ({ role }) => {
         }
 
         .theme-toggle {
-          background-color: #fff;
-          color: #800000;
-          border: 1px solid #800000;
-          border-radius: 20px;
-          padding: 6px 14px;
-          cursor: pointer;
-          font-size: 13px;
-          transition: all 0.3s ease;
+    background-color: #fff;
+    color: #800000;
+    border: 1px solid #800000;
+    border-radius: 20px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    position: absolute;
+    top: 40px;
+    right: 70px;
         }
 
         .theme-toggle:hover {
@@ -248,64 +251,56 @@ const Navbar = ({ role }) => {
       `}
       </style>
 
-      <div className="navbar-wrapper">
-        <header className="dashboard-header">
-          <div className="header-content">
-            <div className="logo-section">
-              <img src="/logo.jpeg" alt="UniChat Logo" className="logo-img" />
+      <div className='navbar-wrapper'>
+        <header className='dashboard-header'>
+          <div className='header-content'>
+            <div className='logo-section'>
+              <img src='/logo.jpeg' alt='UniChat Logo' className='logo-img' />
               <div>
-                <h1 className="header-title">UniChat for {role}s</h1>
-                <p className="header-subtitle">
-                  Your Campus, Your Voice, Your Community
-                </p>
+                <h1 className='header-title'>UniChat for {role}s</h1>
+                <p className='header-subtitle'>Your Campus, Your Voice, Your Community</p>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {isStudent && (
-                <div className="nav-icon-container">
-                  <a
-                    href="/notifications"
-                    className="notification-icon"
-                    title="View Notifications"
-                  >
+                <div className='nav-icon-container'>
+                  <a href='/notifications' className='notification-icon' title='View Notifications'>
                     🔔
                   </a>
                   {notificationUnreadCount > 0 && (
-                    <span className="unread-nav-badge">
+                    <span className='unread-nav-badge'>
                       {notificationUnreadCount > 99 ? '99+' : notificationUnreadCount}
                     </span>
                   )}
                 </div>
               )}
-              <button onClick={toggleTheme} className="theme-toggle">
-                {theme === "light" ? "🌙 Maroon Mode" : "☀️ Light Mode"}
+              <button onClick={toggleTheme} className='theme-toggle'>
+                {theme === 'light' ? '🌙 Maroon Mode' : '☀️ Light Mode'}
               </button>
             </div>
           </div>
         </header>
 
-        <nav className="navbar">
-          <a href="/">🏠 Dashboard</a>
-          <a href="/browse">🔍 Browse</a>
-          <div className="nav-icon-container">
-            <a href="/chat">💬 Chats</a>
+        <nav className='navbar'>
+          <a href='/'>🏠 Dashboard</a>
+          <a href='/browse'>🔍 Browse</a>
+          <div className='nav-icon-container'>
+            <a href='/chat'>💬 Chats</a>
             {chatUnreadCount > 0 && (
-              <span className="unread-nav-badge">
-                {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
-              </span>
+              <span className='unread-nav-badge'>{chatUnreadCount > 99 ? '99+' : chatUnreadCount}</span>
             )}
           </div>
-          <a href="/forums">📢 Forums</a>
+          <a href='/forums'>📢 Forums</a>
 
-          {isMentor && <a href="/mentor-request">📩 Mentor Requests</a>}
+          {isMentor && <a href='/mentor-request'>📩 Mentor Requests</a>}
 
-          <div className="dropdown">
-            <a href="#">👤 Profile ▾</a>
-            <div className="dropdown-content">
-              <a href="/profile">View/Edit Profile</a>
-              <a href="/feedback">🍋 Feedback</a>
-              <a href="/logout">🚪 Logout</a>
+          <div className='dropdown'>
+            <a href='#'>👤 Profile ▾</a>
+            <div className='dropdown-content'>
+              <a href='/profile'>View/Edit Profile</a>
+              <a href='/feedback'>🍋 Feedback</a>
+              <a href='/logout'>🚪 Logout</a>
             </div>
           </div>
         </nav>

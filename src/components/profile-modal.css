@@ -13,9 +13,12 @@
   z-index: 10000;
   padding: 20px;
   backdrop-filter: blur(5px);
+  overscroll-behavior: contain;
 }
 
 .profile-modal {
+  display: flex;
+  flex-direction: column;
   background: white;
   border-radius: 20px;
   width: 100%;
@@ -24,6 +27,7 @@
   overflow-y: auto;
   position: relative;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 .profile-modal.enhanced {
@@ -87,7 +91,7 @@
 .enhanced-avatar {
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
   backdrop-filter: blur(10px);
 }
 
@@ -130,7 +134,7 @@
   font-size: 32px;
   font-weight: bold;
   margin: 0 0 10px 0;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .profile-role {
@@ -186,6 +190,9 @@
 
 /* Enhanced Content */
 .modal-content {
+  overflow-y: auto; /* ⬅️ single scrollbar lives here */
+  width: 100%;
+  flex: 1 1 auto;
   padding: 30px;
 }
 
@@ -230,13 +237,13 @@
   padding: 20px;
   border-radius: 12px;
   border-left: 4px solid #667eea;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .info-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .info-card.full-width {
@@ -356,7 +363,6 @@
 
 .course-name {
   font-weight: 600;
-  color: #333;
   display: block;
   margin-bottom: 5px;
 }
@@ -381,7 +387,7 @@
   padding: 25px;
   border-radius: 12px;
   border-left: 4px solid #28a745;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .bio-text {
@@ -505,18 +511,21 @@
 }
 
 /* Loading and Error States */
-.loading-content, .error-content {
+.loading-content,
+.error-content {
   text-align: center;
   padding: 80px 30px;
   color: #666;
 }
 
-.loading-content h3, .error-content h3 {
+.loading-content h3,
+.error-content h3 {
   margin-bottom: 10px;
   color: #333;
 }
 
-.loading-content p, .error-content p {
+.loading-content p,
+.error-content p {
   color: #666;
   margin-bottom: 20px;
 }
@@ -543,65 +552,65 @@
   .modal-overlay {
     padding: 10px;
   }
-  
+
   .profile-modal {
     max-height: 95vh;
   }
-  
+
   .modal-header {
     padding: 20px;
   }
-  
+
   .enhanced-header {
     padding: 25px 20px;
   }
-  
+
   .modal-content {
     padding: 20px;
   }
-  
+
   .enhanced-content {
     padding: 25px 20px;
   }
-  
+
   .info-cards {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .info-grid {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .social-links {
     flex-direction: column;
   }
-  
+
   .modal-actions {
     flex-direction: column;
     padding: 15px 20px;
   }
-  
+
   .profile-name {
     font-size: 24px;
   }
-  
+
   .profile-avatar {
     width: 80px;
     height: 80px;
     font-size: 32px;
   }
-  
+
   .enhanced-avatar {
     width: 100px;
     height: 100px;
   }
-  
+
   .avatar-initial {
     font-size: 40px;
   }
-  
+
   .section-title {
     font-size: 18px;
   }
@@ -640,7 +649,7 @@
   padding: 15px;
   border-radius: 10px;
   border-left: 4px solid #667eea;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .expertise-header {
@@ -691,10 +700,89 @@
   .expertise-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .course-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
+}
+
+/* availibility */
+
+.expertise-card {
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  border-radius: 14px;
+}
+
+/* Grade badge already green — keep */
+.grade-badge {
+  background: #22c55e;
+  color: #fff;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* --- Availability: distinct look --- */
+.availability-card {
+  background: linear-gradient(135deg, #f6fff9 0%, #ffffff 100%);
+  border-left: 4px solid #0ea5a4; /* teal accent (different from expertise) */
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-top: 8px;
+}
+
+.availability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.availability-title {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  font-size: 12px;
+  color: #0f766e;
+}
+
+.availability-icon {
+  font-size: 18px;
+  opacity: 0.6;
+}
+
+/* list reset */
+.availability-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+/* “Chip” rows for each slot */
+.availability-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  background: rgba(14, 165, 164, 0.08); /* soft teal */
+  border: 1px dashed rgba(14, 165, 164, 0.35);
+  width: fit-content;
+}
+
+.availability-slot .day {
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.availability-slot .time {
+  color: #0b3b38;
+  font-variant-numeric: tabular-nums;
 }
