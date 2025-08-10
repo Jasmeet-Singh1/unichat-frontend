@@ -1,8 +1,9 @@
 import React, { useState, useContext } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom'; // ✅ Added Link import
 import { 
   BarChart3, Users, FileText, AlertTriangle, Calendar, Mail, 
-  Settings, Sun, Moon, ChevronDown, User, LogOut, Home, Menu, X 
+  Settings, Sun, Moon, ChevronDown, User, LogOut, Home, Menu, X,
+  UserCheck // ✅ Added UserCheck import
 } from 'lucide-react';
 import { ThemeContext } from '../../AdminPortal';
 import '../../styles/Layout.css';
@@ -24,6 +25,7 @@ const Layout = ({ children }) => {
       title: 'Management',
       items: [
         { id: 'users', name: 'Manage Users', path: '/admin/manage-users', icon: Users },
+        { id: 'approvals', name: 'Approval Management', path: '/admin/approvals', icon: UserCheck }, // ✅ Added this line
         { id: 'uploads', name: 'View Uploads', path: '/admin/view-uploads', icon: FileText },
         { id: 'events', name: 'Event Management', path: '/admin/event-management', icon: Calendar }
       ]
@@ -48,6 +50,7 @@ const Layout = ({ children }) => {
     const titles = {
       '/admin/dashboard': 'Dashboard',
       '/admin/manage-users': 'Manage Users',
+      '/admin/approvals': 'Approval Management', // ✅ Added this line
       '/admin/view-uploads': 'View Uploads',
       '/admin/flagged-content': 'Flagged Content',
       '/admin/event-management': 'Event Management',
@@ -83,12 +86,12 @@ const Layout = ({ children }) => {
       {/* Sidebar */}
       <aside className={`admin-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
-          <a href="/admin/dashboard" className="sidebar-brand">
+          <Link to="/admin/dashboard" className="sidebar-brand"> {/* ✅ Changed from <a> to <Link> */}
             <div className="brand-icon">
               <BarChart3 size={20} color="white" />
             </div>
             <span className="brand-text">UNICHAT</span>
-          </a>
+          </Link> {/* ✅ Changed from </a> to </Link> */}
         </div>
 
         <nav className="sidebar-nav">
@@ -98,15 +101,15 @@ const Layout = ({ children }) => {
               {section.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <a
+                  <Link // ✅ Changed from <a> to <Link>
                     key={item.id}
-                    href={item.path}
+                    to={item.path} // ✅ Changed from href to to
                     className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
                     onClick={closeMobileMenu}
                   >
                     <Icon className="nav-icon" size={20} />
                     {item.name}
-                  </a>
+                  </Link> // ✅ Changed from </a> to </Link>
                 );
               })}
             </div>
@@ -166,10 +169,10 @@ const Layout = ({ children }) => {
                       </div>
                       
                       <div className="dropdown-menu">
-                        <a href="/" className="dropdown-item">
+                        <Link to="/" className="dropdown-item"> {/* ✅ Changed from <a> to <Link> */}
                           <Home size={18} />
                           Go to Main Site
-                        </a>
+                        </Link> {/* ✅ Changed from </a> to </Link> */}
                         
                         <div className="dropdown-divider" />
                         

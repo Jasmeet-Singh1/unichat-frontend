@@ -431,96 +431,71 @@ const Signup = () => {
     }
   };
 
-  const submitProfile = async () => {
+const submitProfile = async () => {
   try {
-    // Use the same endpoint for ALL roles now
     console.log(`🎯 Creating ${formData.role} account...`);
-    console.log('📧 Email:', formData.email);
     
-    let requestData;
+    // Create FormData for file upload
+    const formDataToSend = new FormData();
+    
+    // Add all text fields
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('firstName', formData.firstName);
+    formDataToSend.append('lastName', formData.lastName);
+    formDataToSend.append('role', formData.role);
+    formDataToSend.append('username', formData.username);
+    formDataToSend.append('password', formData.password);
+    formDataToSend.append('bio', formData.bio);
+    formDataToSend.append('program', formData.program);
+    formDataToSend.append('programType', formData.programType);
+    
+    // Add arrays as JSON strings
+    formDataToSend.append('coursesEnrolled', JSON.stringify(formData.enrolledCourses));
+    formDataToSend.append('expectedGradDate', formData.gradDate);
+    formDataToSend.append('overallGPA', formData.overallGPA);
     
     if (formData.role === 'Student') {
-      requestData = {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: formData.role,
-        username: formData.username,
-        password: formData.password,
-        bio: formData.bio,
-        program: formData.program,
-        programType: formData.programType,
-        coursesEnrolled: formData.enrolledCourses,
-        expectedGradDate: formData.gradDate,
-        courseExpertise: [], // Empty for students
-        availability: [], // Empty for students
-        proof: [], // Empty for students
-        overallGPA: formData.overallGPA,
-        gradDate: formData.gradDate,
-        currentJob: null,
-        studentClubs: formData.clubs
-      };
-    } else {
-      // Mentor/Alumni data (existing code)
-      let proofValue = null;
-      if (formData.mentorProof && formData.mentorProof.name) {
-        proofValue = formData.mentorProof.name;
-      } else if (formData.alumniProof && formData.alumniProof.name) {
-        proofValue = formData.alumniProof.name;
-      }
+      formDataToSend.append('studentClubs', JSON.stringify(formData.clubs));
+    } else if (formData.role === 'Mentor') {
+      formDataToSend.append('courseExpertise', JSON.stringify(formData.savedCourseExpertise));
+      formDataToSend.append('availability', JSON.stringify(availabilityList));
       
-      requestData = {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: formData.role,
-        username: formData.username,
-        password: formData.password,
-        bio: formData.bio,
-        program: formData.program,
-        programType: formData.programType,
-        coursesEnrolled: formData.enrolledCourses,
-        expectedGradDate: formData.gradDate,
-        courseExpertise: formData.savedCourseExpertise,
-        availability: availabilityList,
-        proof: proofValue ? [proofValue] : [],
-        overallGPA: formData.overallGPA,
-        gradDate: formData.alumniGradDate,
-        currentJob: {
-          company: formData.jobCompany,
-          title: formData.jobTitle,
-          startDate: formData.jobStart
-        }
-      };
+      // Add mentor proof file
+      if (formData.mentorProof) {
+        formDataToSend.append('mentorProof', formData.mentorProof);
+      }
+    } else if (formData.role === 'Alumni') {
+      formDataToSend.append('gradDate', formData.alumniGradDate);
+      formDataToSend.append('currentJob', JSON.stringify({
+        company: formData.jobCompany,
+        title: formData.jobTitle,
+        startDate: formData.jobStart
+      }));
+      
+      // Add alumni proof file
+      if (formData.alumniProof) {
+        formDataToSend.append('alumniProof', formData.alumniProof);
+      }
     }
 
-    console.log('📦 Request data:', JSON.stringify(requestData, null, 2));
+    console.log('📦 Sending FormData with files...');
     
-    // Use the same endpoint for all roles
-     const response = await fetch('http://localhost:3001/api/users/create-user', {
+    const response = await fetch('http://localhost:3001/api/users/create-user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData),
+      body: formDataToSend, // Don't set Content-Type header - let browser set it
     });
 
     const result = await response.json();
-    console.log('📋 Response status:', response.status);
     console.log('📋 Response:', result);
 
     if (!response.ok) {
       alert(result.message || 'Account creation failed');
-      console.error('Account creation error:', result);
       return;
     }
 
-    // Success message based on role
-    if (formData.role === 'Student') {
-      alert('Student account created successfully!');
-    } else {
-      alert(formData.role === 'Mentor' 
-        ? 'Mentor request submitted. You will be notified after approval.' 
-        : 'Alumni request submitted. You will be notified after approval.');
-    }
+    alert(formData.role === 'Student' 
+      ? 'Student account created successfully!' 
+      : `${formData.role} request submitted. You will be notified after approval.`);
     
     navigate('/login');
 

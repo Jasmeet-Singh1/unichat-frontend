@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
+  UserCheck, // New icon for approval management
   Upload, 
   Flag, 
   Calendar, 
@@ -16,6 +17,7 @@ const Sidebar = () => {
   const navigationItems = [
     { name: 'Admin Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Manage Users', path: '/admin/manage-users', icon: Users },
+    { name: 'Approval Management', path: '/admin/approvals', icon: UserCheck }, // New item
     { name: 'View Uploads', path: '/admin/view-uploads', icon: Upload },
     { name: 'Flagged Content Review', path: '/admin/flagged-content', icon: Flag },
     { name: 'Event Management', path: '/admin/event-management', icon: Calendar },
