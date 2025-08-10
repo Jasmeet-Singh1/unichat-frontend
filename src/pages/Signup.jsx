@@ -689,7 +689,7 @@ const submitProfile = async () => {
                 </div>
                 <div className='input-group'>
                   <label>
-                    Username{' '}
+                    Username
                     <span data-tooltip-id='username-tooltip' className='info-icon'>
                       i
                     </span>
