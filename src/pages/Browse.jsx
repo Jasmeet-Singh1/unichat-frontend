@@ -569,6 +569,12 @@ const Browse = ({ role, currentUser }) => {
         return '';
     }
   };
+  const renderField = (v) => {
+    if (v == null) return '';
+    if (typeof v === 'string' || typeof v === 'number') return v;
+    // try common string-ish props
+    return v.name || v.title || v.code || v.email || v._id || '';
+  };
 
   return (
     <div className='browse-container'>
@@ -802,10 +808,12 @@ const Browse = ({ role, currentUser }) => {
                   <div className='user-header'>
                     <div className='user-info'>
                       <h4 className='user-name'>
-                        {getRoleIcon(user.role)} {user.firstName} {user.lastName}
-                        <span className={`user-role-badge ${getRoleBadgeClass(user.role)}`}>{user.role}</span>
+                        {getRoleIcon(user.role)} {renderField(user.firstName)} {renderField(user.lastName)}
+                        <span className={`user-role-badge ${getRoleBadgeClass(user.role)}`}>
+                          {renderField(user.role)}
+                        </span>
                       </h4>
-                      <p className='user-email'>✉️ {user.email}</p>
+                      <p className='user-email'>✉️ {renderField(user.email)}</p>
                     </div>
                   </div>
 
@@ -813,25 +821,25 @@ const Browse = ({ role, currentUser }) => {
                     {user.program && (
                       <div className='detail-item'>
                         <span className='detail-icon'>📚</span>
-                        <span>Program: {user.program}</span>
+                        <span>Program: {renderField(user.program)}</span>
                       </div>
                     )}
                     {user.year && (
                       <div className='detail-item'>
                         <span className='detail-icon'>📅</span>
-                        <span>Year: {user.year}</span>
+                        <span>Year: {renderField(user.year)}</span>
                       </div>
                     )}
                     {user.courseCode && (
                       <div className='detail-item'>
                         <span className='detail-icon'>📖</span>
-                        <span>Course: {user.courseCode}</span>
+                        <span>Course: {renderField(user.courseCode)}</span>
                       </div>
                     )}
                     {user.interests && (
                       <div className='detail-item'>
                         <span className='detail-icon'>💡</span>
-                        <span>Interests: {user.interests}</span>
+                        <span>Interests: {renderField(user.interests)}</span>
                       </div>
                     )}
                   </div>

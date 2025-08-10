@@ -7,6 +7,7 @@ const UserProfileModal = ({ isOpen, onClose, userId, currentUser, onSendMessage 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  console.log('userID inside modal', userId);
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden'; // lock page
@@ -123,6 +124,22 @@ const UserProfileModal = ({ isOpen, onClose, userId, currentUser, onSendMessage 
 
   if (!isOpen) return null;
 
+  const asText = (v) => {
+    if (v == null) return '';
+    if (typeof v === 'string' || typeof v === 'number') return v;
+
+    // try common fields you use in your API
+    return (
+      v.name ??
+      v.title ??
+      v.code ??
+      v.courseCode ??
+      v.description ??
+      v._id ?? // last resort: id
+      ''
+    );
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -175,7 +192,7 @@ const UserProfileModal = ({ isOpen, onClose, userId, currentUser, onSendMessage 
 
                   <div className='profile-meta'>
                     <p className='profile-username'>@{profile.username || 'Not set'}</p>
-                    {profile.program && <p className='profile-program'>{profile.program}</p>}
+                    {profile.program && <p className='profile-program'>{asText(profile.program)}</p>}
                     {profile.programType && <p className='profile-program-type'>{profile.programType}</p>}
                   </div>
                 </div>
@@ -216,7 +233,7 @@ const UserProfileModal = ({ isOpen, onClose, userId, currentUser, onSendMessage 
                     {profile.program && (
                       <div className='info-card'>
                         <div className='info-label'>Program</div>
-                        <div className='info-value'>{profile.program}</div>
+                        <div className='info-value'>{asText(profile.program)}</div>
                       </div>
                     )}
                     {profile.programType && (
@@ -256,16 +273,18 @@ const UserProfileModal = ({ isOpen, onClose, userId, currentUser, onSendMessage 
                       {profile.coursesEnrolled.map((course, index) => (
                         <div key={index} className='course-item'>
                           <div className='course-header'>
-                            <span className='course-name'>{course.course}</span>
+                            <span className='course-name'>{asText(course.course)}</span>
                             {course.semester && course.year && (
                               <span className='course-term'>
                                 {course.semester} {course.year}
                               </span>
                             )}
                           </div>
-                          {course.courseName && <div className='course-description'>{course.courseName}</div>}
+                          {course.courseName && (
+                            <div className='course-description'>{asText(course.courseName)}</div>
+                          )}
                           {course.instructor && (
-                            <div className='course-instructor'>Instructor: {course.instructor}</div>
+                            <div className='course-instructor'>Instructor: {asText(course.instructor)}</div>
                           )}
                         </div>
                       ))}
@@ -280,8 +299,8 @@ const UserProfileModal = ({ isOpen, onClose, userId, currentUser, onSendMessage 
                     <div className='clubs-list'>
                       {profile.studentClubs.map((club, index) => (
                         <div key={index} className='club-item'>
-                          <span className='club-name'>{club.club}</span>
-                          <span className='club-role'>{club.designation}</span>
+                          <span className='club-name'>{asText(club.club._id)}</span>
+                          <span className='club-role'>{asText(club.designation)}</span>
                         </div>
                       ))}
                     </div>
