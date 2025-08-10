@@ -19,7 +19,7 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 20px;
   color: white;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
 .forums-title {
@@ -39,7 +39,7 @@
   border-radius: 16px;
   padding: 30px;
   margin-bottom: 30px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   border: 1px solid #e1e8ed;
 }
 
@@ -87,12 +87,12 @@
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e1e8ed;
+  gap: 20px;
 }
 
 .upload-tab {
   flex: 1;
   padding: 10px 15px;
-  background: #f8f9fa;
   border: none;
   cursor: pointer;
   font-size: 14px;
@@ -106,7 +106,7 @@
 }
 
 .upload-tab:hover:not(.active) {
-  background: #e9ecef;
+  background: #2c3e50;
 }
 
 .file-input {
@@ -183,7 +183,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .posts-container {
@@ -196,14 +198,14 @@
   background: white;
   border-radius: 16px;
   padding: 25px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   border: 1px solid #e1e8ed;
   transition: all 0.3s ease;
 }
 
 .post-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
 }
 
 .post-header {
@@ -264,7 +266,7 @@
   object-fit: cover;
   border-radius: 12px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .post-actions {
@@ -281,7 +283,6 @@
   gap: 6px;
   padding: 8px 16px;
   border: 2px solid #e1e8ed;
-  background: white;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -419,7 +420,7 @@
   padding: 60px 20px;
   background: white;
   border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .empty-icon {
@@ -443,24 +444,24 @@
   .forums-content {
     padding: 15px;
   }
-  
+
   .forums-header {
     padding: 30px 15px;
   }
-  
+
   .forums-title {
     font-size: 2em;
   }
-  
+
   .create-post-container,
   .post-card {
     padding: 20px;
   }
-  
+
   .post-actions {
     flex-wrap: wrap;
   }
-  
+
   .action-btn {
     font-size: 12px;
     padding: 6px 12px;

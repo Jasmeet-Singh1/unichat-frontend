@@ -41,18 +41,19 @@
 
 .profile-tabs {
   display: flex;
-  background: white;
+  /* background: white; */
   border-radius: 12px;
   padding: 8px;
   margin-bottom: 30px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  gap: 20px;
 }
 
 .profile-tab {
   flex: 1;
   padding: 12px 20px;
   border: none;
-  background: transparent;
+  /* background: transparent; */
   border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
@@ -68,7 +69,7 @@
   background: white;
   border-radius: 16px;
   padding: 40px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .form-grid {
@@ -96,7 +97,9 @@
   gap: 8px;
 }
 
-.form-input, .form-textarea, .form-select {
+.form-input,
+.form-textarea,
+.form-select {
   padding: 14px 16px;
   border: 2px solid #e1e5e9;
   border-radius: 10px;
@@ -104,7 +107,9 @@
   transition: border-color 0.3s ease;
 }
 
-.form-input:focus, .form-textarea:focus, .form-select:focus {
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
   outline: none;
   border-color: #667eea;
 }
@@ -207,7 +212,8 @@
   font-weight: bold;
 }
 
-.courses-display, .clubs-display {
+.courses-display,
+.clubs-display {
   border: 2px solid #e1e5e9;
   border-radius: 10px;
   padding: 16px;
@@ -215,7 +221,8 @@
   min-height: 100px;
 }
 
-.course-item, .club-item {
+.course-item,
+.club-item {
   background: #fff;
   padding: 12px;
   border-radius: 8px;
@@ -227,15 +234,18 @@
   align-items: center;
 }
 
-.course-item:last-child, .club-item:last-child {
+.course-item:last-child,
+.club-item:last-child {
   margin-bottom: 0;
 }
 
-.course-content, .club-content {
+.course-content,
+.club-content {
   flex: 1;
 }
 
-.course-actions, .club-actions {
+.course-actions,
+.club-actions {
   display: flex;
   gap: 8px;
 }
@@ -247,7 +257,8 @@
   padding: 20px;
 }
 
-.course-form, .club-form {
+.course-form,
+.club-form {
   background: #f8f9fa;
   padding: 16px;
   border-radius: 8px;
@@ -255,7 +266,8 @@
   border: 2px solid #e1e5e9;
 }
 
-.course-form h4, .club-form h4 {
+.course-form h4,
+.club-form h4 {
   margin: 0 0 12px 0;
   color: #333;
 }
@@ -343,7 +355,7 @@
   .form-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .profile-tabs {
     flex-direction: column;
   }
@@ -352,7 +364,8 @@
     grid-template-columns: 1fr;
   }
 
-  .course-actions, .club-actions {
+  .course-actions,
+  .club-actions {
     flex-direction: column;
   }
 }

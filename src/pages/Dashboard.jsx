@@ -1,4 +1,5 @@
 import React from 'react';
+import clubMeetingPic from '../assets/clubMeetingPic.jpg';
 
 const Dashboard = ({ role }) => {
   const styles = {
@@ -74,12 +75,14 @@ const Dashboard = ({ role }) => {
           </div>
 
           <div style={styles.section}>
-            <h2 style={styles.heading}><a href='/forums'>📢 Campus Forums</a></h2>
+            <h2 style={styles.heading}>
+              <a href='/forums'>📢 Campus Forums</a>
+            </h2>
             <div>
               <p style={styles.paragraph}>
                 <strong>Alice (CS 2025):</strong> Check out our new AI club meetup this Friday!
               </p>
-              <img src='forum-pic.jpg' alt='AI Meetup Poster' style={styles.image} />
+              <img src={clubMeetingPic} alt='AI Meetup Poster' style={styles.image} />
               <div style={styles.actions}>
                 <button style={{ ...styles.button, ...styles.blueButton }}>👍 Like</button>
                 <button style={{ ...styles.button, ...styles.blueButton }}>💬 Comment</button>
@@ -89,7 +92,9 @@ const Dashboard = ({ role }) => {
           </div>
 
           <div style={styles.section}>
-            <h2 style={styles.heading}><a href='/chat'>📩 Messages</a></h2>
+            <h2 style={styles.heading}>
+              <a href='/chat'>📩 Messages</a>
+            </h2>
             <p style={styles.paragraph}>You have no new messages. Start chatting with students or mentors!</p>
           </div>
         </>

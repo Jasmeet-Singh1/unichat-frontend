@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,14 +45,14 @@ const Signup = () => {
       clubs: [],
       club: '',
       designation: '',
-      
+
       // NEW: Separate current form fields from saved expertise
       savedCourseExpertise: [], // This stores the completed expertise entries
       currentCourse: '',
       currentTopics: '',
       currentGrade: '',
       currentInstructor: '',
-      
+
       topicCovered: '',
       availabilityDays: [],
       availabilityFrom: '',
@@ -113,12 +113,7 @@ const Signup = () => {
         : formData.role === 'Alumni'
         ? ['alumniProof']
         : [],
-    6:
-      formData.role === 'Student'
-        ? []
-        : formData.role === 'Mentor'
-        ? []
-        : [],
+    6: formData.role === 'Student' ? [] : formData.role === 'Mentor' ? [] : [],
     7: formData.role === 'Mentor' ? ['mentorProof'] : [],
   };
 
@@ -308,25 +303,24 @@ const Signup = () => {
         }
       } else {
         if (type === 'file') {
-    const file = files[0];
-    console.log('📄 File selected for field:', name);
-    console.log('📄 File object:', file);
-    console.log('📄 File name:', file?.name);
-    console.log('📄 File size:', file?.size);
-    console.log('📄 File type:', file?.type);
-    
-    setFormData((prev) => ({
-      ...prev,
-      [name]: file, // Store the actual file object
-    }));
-  } else {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
+          const file = files[0];
+          console.log('📄 File selected for field:', name);
+          console.log('📄 File object:', file);
+          console.log('📄 File name:', file?.name);
+          console.log('📄 File size:', file?.size);
+          console.log('📄 File type:', file?.type);
 
-        }));
+          setFormData((prev) => ({
+            ...prev,
+            [name]: file, // Store the actual file object
+          }));
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+          }));
+        }
       }
-    }
     }
   };
 
@@ -432,108 +426,87 @@ const Signup = () => {
   };
 
   const submitProfile = async () => {
-  try {
-    // Use the same endpoint for ALL roles now
-    console.log(`🎯 Creating ${formData.role} account...`);
-    console.log('📧 Email:', formData.email);
-    
-    let requestData;
-    
-    if (formData.role === 'Student') {
-      requestData = {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: formData.role,
-        username: formData.username,
-        password: formData.password,
-        bio: formData.bio,
-        program: formData.program,
-        programType: formData.programType,
-        coursesEnrolled: formData.enrolledCourses,
-        expectedGradDate: formData.gradDate,
-        courseExpertise: [], // Empty for students
-        availability: [], // Empty for students
-        proof: [], // Empty for students
-        overallGPA: formData.overallGPA,
-        gradDate: formData.gradDate,
-        currentJob: null,
-        studentClubs: formData.clubs
-      };
-    } else {
-      // Mentor/Alumni data (existing code)
-      let proofValue = null;
-      if (formData.mentorProof && formData.mentorProof.name) {
-        proofValue = formData.mentorProof.name;
-      } else if (formData.alumniProof && formData.alumniProof.name) {
-        proofValue = formData.alumniProof.name;
-      }
-      
-      requestData = {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: formData.role,
-        username: formData.username,
-        password: formData.password,
-        bio: formData.bio,
-        program: formData.program,
-        programType: formData.programType,
-        coursesEnrolled: formData.enrolledCourses,
-        expectedGradDate: formData.gradDate,
-        courseExpertise: formData.savedCourseExpertise,
-        availability: availabilityList,
-        proof: proofValue ? [proofValue] : [],
-        overallGPA: formData.overallGPA,
-        gradDate: formData.alumniGradDate,
-        currentJob: {
-          company: formData.jobCompany,
-          title: formData.jobTitle,
-          startDate: formData.jobStart
+    try {
+      console.log(`🎯 Creating ${formData.role} account...`);
+
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+
+      // Add all text fields
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('role', formData.role);
+      formDataToSend.append('username', formData.username);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('bio', formData.bio);
+      formDataToSend.append('program', formData.program);
+      formDataToSend.append('programType', formData.programType);
+
+      // Add arrays as JSON strings
+      formDataToSend.append('coursesEnrolled', JSON.stringify(formData.enrolledCourses));
+      formDataToSend.append('expectedGradDate', formData.gradDate);
+      formDataToSend.append('overallGPA', formData.overallGPA);
+
+      if (formData.role === 'Student') {
+        formDataToSend.append('studentClubs', JSON.stringify(formData.clubs));
+      } else if (formData.role === 'Mentor') {
+        formDataToSend.append('courseExpertise', JSON.stringify(formData.savedCourseExpertise));
+        formDataToSend.append('availability', JSON.stringify(availabilityList));
+
+        // Add mentor proof file
+        if (formData.mentorProof) {
+          formDataToSend.append('mentorProof', formData.mentorProof);
         }
-      };
+      } else if (formData.role === 'Alumni') {
+        formDataToSend.append('gradDate', formData.alumniGradDate);
+        formDataToSend.append(
+          'currentJob',
+          JSON.stringify({
+            company: formData.jobCompany,
+            title: formData.jobTitle,
+            startDate: formData.jobStart,
+          })
+        );
+
+        // Add alumni proof file
+        if (formData.alumniProof) {
+          formDataToSend.append('alumniProof', formData.alumniProof);
+        }
+      }
+
+      console.log('📦 Sending FormData with files...');
+
+      const response = await fetch('http://localhost:3001/api/users/create-user', {
+        method: 'POST',
+        body: formDataToSend, // Don't set Content-Type header - let browser set it
+      });
+
+      const result = await response.json();
+      console.log('📋 Response:', result);
+
+      if (!response.ok) {
+        alert(result.message || 'Account creation failed');
+        return;
+      }
+
+      alert(
+        formData.role === 'Student'
+          ? 'Student account created successfully!'
+          : `${formData.role} request submitted. You will be notified after approval.`
+      );
+
+      navigate('/login');
+    } catch (error) {
+      console.error('Error submitting profile:', error);
+      alert('Something went wrong while submitting your profile.');
     }
-
-    console.log('📦 Request data:', JSON.stringify(requestData, null, 2));
-    
-    // Use the same endpoint for all roles
-     const response = await fetch('http://localhost:3001/api/users/create-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData),
-    });
-
-    const result = await response.json();
-    console.log('📋 Response status:', response.status);
-    console.log('📋 Response:', result);
-
-    if (!response.ok) {
-      alert(result.message || 'Account creation failed');
-      console.error('Account creation error:', result);
-      return;
-    }
-
-    // Success message based on role
-    if (formData.role === 'Student') {
-      alert('Student account created successfully!');
-    } else {
-      alert(formData.role === 'Mentor' 
-        ? 'Mentor request submitted. You will be notified after approval.' 
-        : 'Alumni request submitted. You will be notified after approval.');
-    }
-    
-    navigate('/login');
-
-  } catch (error) {
-    console.error('Error submitting profile:', error);
-    alert('Something went wrong while submitting your profile.');
-  }
-};
+  };
 
   // NEW functions for handling course expertise properly
   const addCurrentExpertise = () => {
     const { currentCourse, currentTopics, currentGrade, currentInstructor } = formData;
-    
+
     // Validation
     if (!currentCourse || !currentTopics || !currentGrade) {
       alert('Please fill in Course, Topics Covered, and Grade (all required fields)');
@@ -541,7 +514,7 @@ const Signup = () => {
     }
 
     // Check if this course is already added
-    const existingCourse = formData.savedCourseExpertise.find(exp => exp.course === currentCourse);
+    const existingCourse = formData.savedCourseExpertise.find((exp) => exp.course === currentCourse);
     if (existingCourse) {
       alert('You have already added expertise for this course. Please select a different course.');
       return;
@@ -552,7 +525,7 @@ const Signup = () => {
       course: currentCourse,
       topicsCovered: currentTopics,
       grade: currentGrade,
-      instructor: currentInstructor || ''
+      instructor: currentInstructor || '',
     };
 
     setFormData((prev) => ({
@@ -562,7 +535,7 @@ const Signup = () => {
       currentCourse: '',
       currentTopics: '',
       currentGrade: '',
-      currentInstructor: ''
+      currentInstructor: '',
     }));
 
     console.log('✅ Course expertise added:', newExpertise);
@@ -575,14 +548,14 @@ const Signup = () => {
       currentCourse: '',
       currentTopics: '',
       currentGrade: '',
-      currentInstructor: ''
+      currentInstructor: '',
     }));
   };
 
   const removeSavedExpertise = (index) => {
     setFormData((prev) => ({
       ...prev,
-      savedCourseExpertise: prev.savedCourseExpertise.filter((_, i) => i !== index)
+      savedCourseExpertise: prev.savedCourseExpertise.filter((_, i) => i !== index),
     }));
   };
 
@@ -781,7 +754,9 @@ const Signup = () => {
                   <select name='courseCode' value={formData.courseCode} onChange={handleCourseChange} required>
                     <option value=''>Select Course</option>
                     {courses.map((course) => (
-                      <option key={course._id} value={course._id}>{course.name}</option>
+                      <option key={course._id} value={course._id}>
+                        {course.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -932,27 +907,6 @@ const Signup = () => {
             {formData.role === 'Mentor' && step === 5 && (
               <div className='form-block'>
                 <h2>Step 5: Expertise</h2>
-                
-                {/* Show list of saved course expertise */}
-                {formData.savedCourseExpertise && formData.savedCourseExpertise.length > 0 && (
-                  <div className='saved-expertise'>
-                    <h3>Added Course Expertise:</h3>
-                    {formData.savedCourseExpertise.map((expertise, index) => (
-                      <div key={index} className='expertise-box'>
-                        <strong>Course:</strong> {courses.find(c => c._id === expertise.course)?.name || expertise.course}
-                        <br />
-                        <strong>Topics:</strong> {expertise.topicsCovered}
-                        <br />
-                        <strong>Grade:</strong> {expertise.grade}
-                        <br />
-                        <strong>Instructor:</strong> {expertise.instructor || 'N/A'}
-                        <button type='button' onClick={() => removeSavedExpertise(index)} className='remove-button'>
-                          ❌ Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {/* Current form for adding new expertise */}
                 <div className='current-expertise-form'>
@@ -963,7 +917,7 @@ const Signup = () => {
                       <select
                         name='currentCourse'
                         value={formData.currentCourse || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, currentCourse: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, currentCourse: e.target.value }))}
                         required
                       >
                         <option value=''>Select Course</option>
@@ -979,7 +933,7 @@ const Signup = () => {
                       <input
                         type='text'
                         value={formData.currentTopics || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, currentTopics: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, currentTopics: e.target.value }))}
                         placeholder='e.g., Data Structures, Algorithms, OOP'
                         required
                       />
@@ -988,7 +942,7 @@ const Signup = () => {
                       <label>Grade*</label>
                       <select
                         value={formData.currentGrade || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, currentGrade: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, currentGrade: e.target.value }))}
                         required
                       >
                         <option value=''>Select Grade</option>
@@ -998,27 +952,67 @@ const Signup = () => {
                         <option value='B+'>B+</option>
                       </select>
                     </div>
-                    <div className='input-group'>
-                      <label>Instructor</label>
-                      <input
-                        type='text'
-                        value={formData.currentInstructor || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, currentInstructor: e.target.value }))}
-                        placeholder='Instructor name (optional)'
-                      />
-                    </div>
-                    
-                    {/* Manual Add Button */}
-                    <div className='button-group-expertise'>
-                      <button type='button' onClick={addCurrentExpertise} className='add-button'>
-                        ✅ Add This Course Expertise
-                      </button>
-                      <button type='button' onClick={clearCurrentExpertise} className='clear-button'>
-                        🔄 Clear Form
-                      </button>
+                    <div className='together'>
+                      <div className='input-group'>
+                        <label>Instructor</label>
+                        <input
+                          type='text'
+                          value={formData.currentInstructor || ''}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, currentInstructor: e.target.value }))}
+                          placeholder='Instructor name (optional)'
+                        />
+                      </div>
+
+                      {/* Manual Add Button */}
+                      <div className='button-group-expertise'>
+                        <button type='button' onClick={addCurrentExpertise} className='add-button'>
+                          ✅ Add This Course Expertise
+                        </button>
+                        <button type='button' onClick={clearCurrentExpertise} className='clear-button'>
+                          🔄 Clear Form
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+                {/* Show list of saved course expertise */}
+                {formData.savedCourseExpertise?.length > 0 && (
+                  <div className='saved-expertise'>
+                    <h3>Added Course Expertise:</h3>
+
+                    {formData.savedCourseExpertise.map((expertise, index) => (
+                      <div key={index} className='expertise-box'>
+                        {/* Top row: Course + Remove button */}
+                        <div className='top'>
+                          <div className='course-name'>
+                            <strong>Course:</strong>{' '}
+                            {courses.find((c) => c._id === expertise.course)?.name || expertise.course}
+                          </div>
+                          <button
+                            type='button'
+                            onClick={() => removeSavedExpertise(index)}
+                            className='remove-button'
+                          >
+                            ❌ Remove
+                          </button>
+                        </div>
+
+                        {/* Details */}
+                        <div className='details'>
+                          <div>
+                            <strong>Topics:</strong> {expertise.topicsCovered}
+                          </div>
+                          <div>
+                            <strong>Grade:</strong> {expertise.grade}
+                          </div>
+                          <div>
+                            <strong>Instructor:</strong> {expertise.instructor || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {formData.role === 'Mentor' && step === 6 && (
@@ -1052,12 +1046,27 @@ const Signup = () => {
                 <button type='button' onClick={handleAddAvailability} className='add-button'>
                   ➕ Add Availability
                 </button>
+
+                {/* Showing selected availability */}
                 <h3>Selected Availability</h3>
-                <ul>
-                  {availabilityList.map((availability, index) => (
-                    <li key={index}>
-                      {availability.day}: {availability.from} - {availability.to}
-                      <button onClick={() => handleRemoveAvailability(index)}>❌ Remove</button>
+                <ul className='availability-list'>
+                  {availabilityList.map((a, i) => (
+                    <li key={i} className='availability-item'>
+                      <span className='slot'>
+                        <span className='day'>{a.day}</span>
+                        <span className='time'>
+                          {a.from} – {a.to}
+                        </span>
+                      </span>
+
+                      <button
+                        type='button'
+                        className='remove-btn'
+                        onClick={() => handleRemoveAvailability(i)}
+                        aria-label={`Remove ${a.day} ${a.from}–${a.to}`}
+                      >
+                        ❌ Remove
+                      </button>
                     </li>
                   ))}
                 </ul>
