@@ -15,6 +15,7 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import GroupModal from './groupModal';
 import GroupDetailsModal from './groupDetailsModal';
+import { useGroupOperations } from './useGroupOperations'; // Import the hook
 
 import './chat-styles.css';
 
@@ -28,6 +29,16 @@ const Chat = ({
   onConnectionChange 
 }) => {
   console.log('🎯 Chat component rendering with currentUser:', currentUser);
+
+  // Initialize the useGroupOperations hook
+  const {
+    loading: groupOperationsLoading,
+    error: groupOperationsError,
+    setError: setGroupOperationsError,
+    removeMember,
+    leaveGroup,
+    getGroupDetails
+  } = useGroupOperations(apiBaseUrl);
 
   // Main state
   const [selectedChat, setSelectedChat] = useState(null);
@@ -58,6 +69,15 @@ const Chat = ({
   const [groupError, setGroupError] = useState(null);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [groupDetails, setGroupDetails] = useState(null);
+
+  // Handle group operations errors
+  useEffect(() => {
+    if (groupOperationsError) {
+      console.error('Group operation error:', groupOperationsError);
+      alert(groupOperationsError);
+      setGroupOperationsError(''); // Clear the error after showing it
+    }
+  }, [groupOperationsError, setGroupOperationsError]);
 
   // API Functions - Remove React.useCallback to avoid dependency issues
   const loadConversations = async () => {
@@ -471,74 +491,82 @@ const Chat = ({
     handleGroupFormChange('selectedMembers', updatedMembers);
   };
 
+  // Updated function using the hook
   const loadGroupDetails = async (groupId) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/groups/${groupId}`, {
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const details = await response.json();
-        setGroupDetails(details);
+      console.log('Loading group details for group:', groupId);
+      const result = await getGroupDetails(groupId);
+      if (result.success) {
+        setGroupDetails(result.group);
         setShowGroupDetails(true);
-      } else {
-        console.error('Failed to load group details');
       }
     } catch (error) {
       console.error('Error loading group details:', error);
+      alert('Failed to load group details: ' + error.message);
     }
   };
 
+  // Updated function using the hook
   const removeMemberFromExistingGroup = async (groupId, userId) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/groups/${groupId}/members/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        loadGroupDetails(groupId);
-        loadGroups();
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Failed to remove member');
+      console.log('Removing member from group. GroupId:', groupId, 'UserId:', userId);
+      // Use the groupId passed directly from the modal
+      const result = await removeMember(groupId, userId);
+      if (result.success) {
+        // Refresh group details and groups list
+        await loadGroupDetails(groupId);
+        await loadGroups();
+        console.log('✅ Member removed successfully');
       }
     } catch (error) {
+      // Error is already handled by the hook and displayed via useEffect
       console.error('Error removing member:', error);
-      alert('Failed to remove member');
     }
   };
 
+  // Updated function using the hook
   const leaveExistingGroup = async (groupId) => {
     if (!window.confirm('Are you sure you want to leave this group?')) return;
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/groups/${groupId}/leave`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${currentUser.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
+      const result = await leaveGroup(groupId);
+      if (result.success) {
         setShowGroupDetails(false);
         setSelectedChat(null);
-        loadGroups();
-      } else {
-        const errorData = await response.json();
-        alert(errorData.error || 'Failed to leave group');
+        await loadGroups();
+        console.log('✅ Left group successfully');
       }
     } catch (error) {
+      // Error is already handled by the hook and displayed via useEffect
       console.error('Error leaving group:', error);
-      alert('Failed to leave group');
     }
+  };
+
+  // Add member operation callbacks for GroupDetailsModal
+  const handleUpdateGroup = (updatedGroup) => {
+    setGroups(prevGroups => 
+      prevGroups.map(group => 
+        group.id === updatedGroup.id ? { ...group, ...updatedGroup } : group
+      )
+    );
+    setGroupDetails(updatedGroup);
+  };
+
+  const handleDeleteGroup = (deletedGroupId) => {
+    setGroups(prevGroups => prevGroups.filter(group => group.id !== deletedGroupId));
+    setShowGroupDetails(false);
+    if (selectedChat?.id === deletedGroupId) {
+      setSelectedChat(null);
+    }
+  };
+
+  const handleAddMembers = (updatedGroup) => {
+    setGroups(prevGroups => 
+      prevGroups.map(group => 
+        group.id === updatedGroup.id ? { ...group, ...updatedGroup } : group
+      )
+    );
+    setGroupDetails(updatedGroup);
   };
 
   // Load conversations and groups on mount - FIXED DEPENDENCIES
@@ -652,12 +680,15 @@ const Chat = ({
 
       {/* Group Details Modal */}
       <GroupDetailsModal
-        showGroupDetails={showGroupDetails}
-        setShowGroupDetails={setShowGroupDetails}
-        groupDetails={groupDetails}
+        isOpen={showGroupDetails}
+        onClose={() => setShowGroupDetails(false)}
+        group={groupDetails}
         currentUser={currentUser}
-        removeMemberFromExistingGroup={removeMemberFromExistingGroup}
-        leaveExistingGroup={leaveExistingGroup}
+        onUpdateGroup={handleUpdateGroup}
+        onDeleteGroup={handleDeleteGroup}
+        onRemoveMember={removeMemberFromExistingGroup}
+        onAddMembers={handleAddMembers}
+        apiBaseUrl={apiBaseUrl}
       />
 
       {/* Main Chat Area */}
@@ -674,17 +705,39 @@ const Chat = ({
               onSearchToggle={() => console.log('🔍 Search toggled')}
               onChatInfo={() => {
                 if (selectedChat?.type === 'group') {
-                  loadGroupDetails(selectedChat.id);
+                  const groupId = selectedChat._id || selectedChat.id;
+                  console.log('Selected chat object:', selectedChat);
+                  console.log('Opening group details for groupId:', groupId);
+                  if (groupId && groupId !== 'undefined') {
+                    loadGroupDetails(groupId);
+                  } else {
+                    console.error('Invalid group ID:', groupId);
+                    alert('Invalid group ID. Cannot load group details.');
+                  }
                 }
               }}
               onManageMembers={() => {
                 if (selectedChat?.type === 'group') {
-                  loadGroupDetails(selectedChat.id);
+                  const groupId = selectedChat._id || selectedChat.id;
+                  console.log('Managing members for groupId:', groupId);
+                  if (groupId && groupId !== 'undefined') {
+                    loadGroupDetails(groupId);
+                  } else {
+                    console.error('Invalid group ID:', groupId);
+                    alert('Invalid group ID. Cannot manage members.');
+                  }
                 }
               }}
               onLeaveGroup={() => {
                 if (selectedChat?.type === 'group') {
-                  leaveExistingGroup(selectedChat.id);
+                  const groupId = selectedChat._id || selectedChat.id;
+                  console.log('Leaving group with groupId:', groupId);
+                  if (groupId && groupId !== 'undefined') {
+                    leaveExistingGroup(groupId);
+                  } else {
+                    console.error('Invalid group ID:', groupId);
+                    alert('Invalid group ID. Cannot leave group.');
+                  }
                 }
               }}
             />
@@ -703,6 +756,7 @@ const Chat = ({
               sendMessage={sendMessage}
               showEmojiPicker={showEmojiPicker}
               setShowEmojiPicker={setShowEmojiPicker}
+              disabled={groupOperationsLoading}
             />
           </>
         ) : (
