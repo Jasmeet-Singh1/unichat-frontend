@@ -885,6 +885,10 @@ const Signup = () => {
                         <option value=''>Select Designation</option>
                         <option value='President'>President</option>
                         <option value='Member'>Member</option>
+                        <option value='Member'>Lead</option>
+                        <option value='Member'>Volunteer</option>
+                        <option value='Member'>Secretary</option>
+                        <option value='Member'>Vice President</option>
                       </select>
                     </div>
                     <button type='button' onClick={addClub} className='add-button'>
