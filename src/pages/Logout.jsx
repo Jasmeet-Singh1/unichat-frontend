@@ -9,31 +9,39 @@ const Logout = () => {
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
-    // Clear storage
-    localStorage.removeItem("role");
+  // Clear ALL the items that were set during login
+  localStorage.removeItem("role");
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("userName");
+  
+  // Also clear any admin-related items (from the browser storage screenshot)
+  localStorage.removeItem("adminToken");
+  localStorage.removeItem("adminUser");
+  localStorage.removeItem("adminTheme");
 
-    // Progress bar animation
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 20);
+  // Progress bar animation
+  const interval = setInterval(() => {
+    setProgress((prev) => {
+      if (prev >= 100) {
+        clearInterval(interval);
+        return 100;
+      }
+      return prev + 1;
+    });
+  }, 20);
 
-    // Redirect after 2s
-    const timer = setTimeout(() => {
-      setShowConfetti(false);
-      navigate("/login");
-    }, 2000);
+  // Redirect after 2s
+  const timer = setTimeout(() => {
+    setShowConfetti(false);
+    navigate("/login");
+  }, 2000);
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    };
-  }, [navigate]);
+  return () => {
+    clearInterval(interval);
+    clearTimeout(timer);
+  };
+}, [navigate]);
 
   return (
     <div style={styles.container}>
