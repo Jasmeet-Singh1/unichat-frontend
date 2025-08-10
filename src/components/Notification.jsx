@@ -23,11 +23,12 @@ const Notification = ({ role }) => {
     return `${Math.floor(minutes / 1440)} days ago`;
   }, []);
 
-  // Get emoji for notification type
+  // 🆕 Updated to include course_peer notification type
   const getNotificationEmoji = useCallback((type) => {
     switch (type) {
       case 'message': return '💬';
       case 'new user': return '🎉';
+      case 'course_peer': return '🎓'; // 🆕 New emoji for course peer notifications
       case 'admin announcement': return '📢';
       case 'liked forum': return '👍';
       case 'request': return '📝';
@@ -130,7 +131,7 @@ const Notification = ({ role }) => {
     } catch (err) {
       console.error('❌ Error loading notifications:', err);
       setError(err.message);
-      // Fallback to mock data if API fails
+      // 🆕 Updated fallback data to include course_peer notifications
       setNotifications([
         {
           _id: 1,
@@ -146,6 +147,22 @@ const Notification = ({ role }) => {
         },
         {
           _id: 2,
+          type: "course_peer", // 🆕 Example course peer notification
+          title: "New Course Mate!",
+          message: "Sarah Johnson (Student) has joined your CPSC 1420 class for Fall 2025.",
+          createdAt: new Date(Date.now() - 3 * 60 * 1000),
+          seen: false,
+          metadata: {
+            newUserName: "Sarah Johnson",
+            newUserRole: "Student",
+            course: "CPSC 1420",
+            semester: "Fall",
+            year: 2025,
+            instructor: "Dr. Smith"
+          }
+        },
+        {
+          _id: 3,
           type: "message",
           message: "John Carter sent a message in Web Development group",
           createdAt: new Date(Date.now() - 5 * 60 * 1000),
@@ -157,21 +174,21 @@ const Notification = ({ role }) => {
           }
         },
         {
-          _id: 3,
+          _id: 4,
           type: "new user",
           message: "Sarah Lee joined your course: Web Development",
           createdAt: new Date(Date.now() - 10 * 60 * 1000),
           seen: false,
         },
         {
-          _id: 4,
+          _id: 5,
           type: "liked forum",
           message: "Mike Johnson liked your post in Machine Learning forum",
           createdAt: new Date(Date.now() - 60 * 60 * 1000),
           seen: true,
         },
         {
-          _id: 5,
+          _id: 6,
           type: "admin announcement",
           message: "New course materials available for Database Systems",
           createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
@@ -229,8 +246,9 @@ const Notification = ({ role }) => {
     }
   }, [currentUser]);
 
-  // Handle chat notification click - navigate to chat
-  const handleChatNotificationClick = useCallback((notification) => {
+  // 🆕 Enhanced to handle course peer notifications
+  const handleNotificationClick = useCallback((notification) => {
+    // Handle chat notifications
     if (notification.type === 'message' && notification.metadata?.chatId) {
       // Store chat info for auto-selection
       sessionStorage.setItem('selectedChatId', notification.metadata.chatId);
@@ -246,15 +264,31 @@ const Notification = ({ role }) => {
       
       // Mark as seen
       markAsSeen(notification._id);
-    } else {
-      // Regular notification click
+    } 
+    // 🆕 Handle course peer notifications
+    else if (notification.type === 'course_peer') {
+      // You could navigate to a user profile or course page
+      // For now, just mark as seen and maybe show more details
+      console.log('Course peer notification clicked:', notification);
+      
+      // Mark as seen
+      if (!notification.seen) {
+        markAsSeen(notification._id);
+      }
+      
+      // Optional: Navigate to course page or user profile
+      // window.location.href = `/courses/${notification.metadata?.course}`;
+      // window.location.href = `/profile/${notification.relatedId}`;
+    }
+    // Handle other notification types
+    else {
       if (!notification.seen) {
         markAsSeen(notification._id);
       }
     }
   }, [markAsSeen]);
 
-  // Setup Socket.IO for real-time notifications
+  // 🆕 Enhanced Socket.IO setup to handle new-notification event
   useEffect(() => {
     if (!currentUser) return;
 
@@ -266,11 +300,36 @@ const Notification = ({ role }) => {
     });
 
     socketInstance.on('connect', () => {
-      console.log('Connected to notification socket');
+      console.log('✅ Connected to notification socket');
+      // Join user-specific room for notifications
+      socketInstance.emit('user-join', {
+        userId: currentUser.id,
+        userName: currentUser.firstName || 'User',
+        token: currentUser.token
+      });
     });
 
+    // 🆕 Listen for the new-notification event from our backend
+    socketInstance.on('new-notification', (data) => {
+      console.log('🔔 New notification received via socket:', data);
+      
+      // Check if notification is for this user
+      if (data.userId === currentUser.id) {
+        setNotifications(prev => [data.notification, ...prev]);
+        
+        // Show browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(data.notification.title || 'New Notification', {
+            body: data.notification.message,
+            icon: '/favicon.ico'
+          });
+        }
+      }
+    });
+
+    // Keep the old event for backward compatibility
     socketInstance.on('new_notification', (notification) => {
-      console.log('New notification received:', notification);
+      console.log('🔔 Legacy notification received:', notification);
       setNotifications(prev => [notification, ...prev]);
       
       if ('Notification' in window && Notification.permission === 'granted') {
@@ -295,6 +354,15 @@ const Notification = ({ role }) => {
       loadNotifications();
     }
   }, [currentUser, loadNotifications]);
+
+  // 🆕 Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('🔔 Browser notification permission:', permission);
+      });
+    }
+  }, []);
 
   // Filter notifications and calculate unread count
   const filteredNotifications = notifications.filter(notification => 
@@ -412,6 +480,15 @@ const Notification = ({ role }) => {
           background-color: #f0fff4;
         }
 
+        /* 🆕 Course peer notification styling */
+        .notification.course-peer-notification {
+          border-left-color: #ffc107;
+        }
+
+        .notification.course-peer-notification.unread {
+          background-color: #fffbf0;
+        }
+
         .notification-content {
           flex: 1;
           display: flex;
@@ -434,11 +511,19 @@ const Notification = ({ role }) => {
           font-weight: 600;
         }
 
-        .chat-notification-meta {
+        .chat-notification-meta, .course-notification-meta {
           color: #666;
           font-size: 12px;
           display: block;
           margin-top: 4px;
+        }
+
+        /* 🆕 Course metadata styling */
+        .course-notification-meta {
+          background: #f8f9fa;
+          padding: 4px 8px;
+          border-radius: 4px;
+          margin-top: 8px;
         }
 
         .notification-time {
@@ -498,6 +583,7 @@ const Notification = ({ role }) => {
             >
               <option value="all">All Types</option>
               <option value="message">Messages</option>
+              <option value="course_peer">Course Mates</option>
               <option value="new user">New Users</option>
               <option value="admin announcement">Announcements</option>
               <option value="liked forum">Forum Likes</option>
@@ -550,11 +636,13 @@ const Notification = ({ role }) => {
               key={notification._id}
               className={`notification ${!notification.seen ? 'unread' : ''} ${
                 notification.type === 'message' ? 'chat-notification' : ''
+              } ${
+                notification.type === 'course_peer' ? 'course-peer-notification' : ''
               }`}
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => handleChatNotificationClick(notification)}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="notification-content">
                 <div className="notification-emoji">
@@ -562,6 +650,8 @@ const Notification = ({ role }) => {
                 </div>
                 <div className={`notification-text ${!notification.seen ? 'unread' : ''}`}>
                   {notification.message}
+                  
+                  {/* Chat notification metadata */}
                   {notification.type === 'message' && notification.metadata?.chatType === 'group' && (
                     <span className="chat-notification-meta">
                       Group: {notification.metadata.chatName}
@@ -571,6 +661,16 @@ const Notification = ({ role }) => {
                     <span className="chat-notification-meta">
                       Direct message
                     </span>
+                  )}
+                  
+                  {/* 🆕 Course peer notification metadata */}
+                  {notification.type === 'course_peer' && notification.metadata && (
+                    <div className="course-notification-meta">
+                      📚 {notification.metadata.course} • {notification.metadata.semester} {notification.metadata.year}
+                      {notification.metadata.instructor && (
+                        <span> • {notification.metadata.instructor}</span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
