@@ -537,8 +537,6 @@ const submitProfile = async () => {
 
       const result = await response.json();
       console.log('📋 Response:', result);
-    const result = await response.json();
-    console.log('📋 Response:', result);
 
       if (!response.ok) {
         alert(result.message || 'Account creation failed');

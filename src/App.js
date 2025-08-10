@@ -9,7 +9,7 @@ import Logout from './pages/Logout';
 import NotFound from './pages/NotFound';
 import Dashboard from './pages/Dashboard';
 import Browse from './pages/Browse';
-import Notification from './components/Notification'; // ✅ This import path is correct
+import Notification from './components/Notification';
 import MentorRequest from './pages/MentorRequest';
 import AlumniDashboard from './pages/AlumniDashboard';
 import Forums from './pages/Forums';
@@ -23,7 +23,7 @@ import AlumniViewEvents from './pages/AlumniViewEvents';
 import Layout from './pages/Layout';
 import AlumniCreateForums from './pages/AlumniCreateForums';
 
-// 🆕 Import Admin Portal
+// Import Admin Portal
 import AdminPortal from './admin/AdminPortal';
 
 const WithNavbar = ({ children, role }) => (
@@ -62,7 +62,7 @@ function App() {
     return children ? children : <Outlet />;
   };
 
-  // 🆕 Check if current path is admin route
+  // Check if current path is admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
@@ -74,37 +74,37 @@ function App() {
       navigate('/login');
     }
     
-    console.log("Role retrieved from localStorage:", storedRole);
-    console.log("Current path:", location.pathname);
-    console.log("Is admin route:", isAdminRoute);
+    console.log('Role retrieved from localStorage:', storedRole);
+    console.log('Current path:', location.pathname);
+    console.log('Is admin route:', isAdminRoute);
   }, [navigate, location.pathname, isAdminRoute]);
 
   return (
     <Routes>
-      {/* 🆕 Admin Routes - Must come FIRST to avoid conflicts */}
+      {/* Admin Routes - Must come FIRST to avoid conflicts */}
       <Route path='/admin/*' element={<AdminPortal />} />
 
       {/* Public Routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/logout" element={<Logout />} />
+      <Route path='/login' element={<Login />} />
+      <Route path='/signup' element={<Signup />} />
+      <Route path='/logout' element={<Logout />} />
       
       {/* Protected User Routes - Only render when NOT admin route */}
       {!isAdminRoute && (
         <Route element={<ProtectedRoute />}>
           {/* Alumni */}
-          {role === "Alumni" ? (
+          {role === 'Alumni' ? (
             <>
               <Route element={<Layout />}>
-                <Route path="/" element={<AlumniDashboard />} />
-                <Route path="/forums" element={<AlumniForums />} />
-                <Route path="/createforums" element={<AlumniCreateForums />} />
-                <Route path="/messages" element={<AlumniMessages />} />
-                <Route path="/mentor" element={<AlumniMentorStudent />} />
-                <Route path="/settings" element={<AlumniSetting />} />
-                <Route path="/events" element={<AlumniViewEvents />} />
+                <Route path='/' element={<AlumniDashboard />} />
+                <Route path='/forums' element={<AlumniForums />} />
+                <Route path='/createforums' element={<AlumniCreateForums />} />
+                <Route path='/messages' element={<AlumniMessages />} />
+                <Route path='/mentor' element={<AlumniMentorStudent />} />
+                <Route path='/settings' element={<AlumniSetting />} />
+                <Route path='/events' element={<AlumniViewEvents />} />
                 <Route
-                  path="/notifications"
+                  path='/notifications'
                   element={<Notification role={role} />}
                 />
               </Route>
@@ -113,7 +113,7 @@ function App() {
             <>
               {/* Student or Mentor */}
               <Route
-                path="/"
+                path='/'
                 element={
                   <WithNavbar role={role}>
                     <Dashboard role={role} />
@@ -121,7 +121,7 @@ function App() {
                 }
               />
               <Route
-                path="/forums"
+                path='/forums'
                 element={
                   <WithNavbar role={role}>
                     <Forums role={role} />
@@ -129,7 +129,7 @@ function App() {
                 }
               />
               <Route
-                path="/browse"
+                path='/browse'
                 element={
                   <WithNavbar role={role}>
                     <Browse role={role} />
@@ -137,11 +137,11 @@ function App() {
                 }
               />
               <Route
-                path="/chat"
+                path='/chat'
                 element={<ChatPage role={role} />}
               />
               <Route
-                path="/profile"
+                path='/profile'
                 element={
                   <WithNavbar role={role}>
                     <Profile role={role} />
@@ -149,7 +149,7 @@ function App() {
                 }
               />
               <Route
-                path="/feedback"
+                path='/feedback'
                 element={
                   <WithNavbar role={role}>
                     <Feedback role={role} />
@@ -157,9 +157,9 @@ function App() {
                 }
               />
               {/* Mentor-specific */}
-              {role === "Mentor" && (
+              {role === 'Mentor' && (
                 <Route
-                  path="/mentor-request"
+                  path='/mentor-request'
                   element={
                     <WithNavbar role={role}>
                       <MentorRequest />
@@ -168,9 +168,9 @@ function App() {
                 />
               )}
               {/* Notifications for both Student and Mentor */}
-              {(role === "Student" || role === "Mentor") && (
+              {(role === 'Student' || role === 'Mentor') && (
                 <Route
-                  path="/notifications"
+                  path='/notifications'
                   element={
                     <WithNavbar role={role}>
                       <Notification role={role} />
@@ -184,7 +184,7 @@ function App() {
       )}
       
       {/* 404 - Only for non-admin routes */}
-      {!isAdminRoute && <Route path="*" element={<NotFound />} />}
+      {!isAdminRoute && <Route path='*' element={<NotFound />} />}
     </Routes>
   );
 }
