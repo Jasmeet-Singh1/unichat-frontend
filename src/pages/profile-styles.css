@@ -369,3 +369,121 @@
     flex-direction: column;
   }
 }
+
+/* recent changes */
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 12px;
+}
+
+.section-title {
+  margin: 0;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.btn {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-add {
+  background: #28a745;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.25);
+}
+.btn-add:hover {
+  transform: translateY(-1px);
+}
+
+.list-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* Card item (shared by courses + clubs) */
+.list-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.list-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Blue accent for courses; subtle purple-ish left bar */
+.list-card {
+  border-left: 4px solid #667eea;
+}
+.list-card--club {
+  border-left-color: #22c55e;
+} /* green accent for clubs */
+
+/* Left column */
+.card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.card-title {
+  display: block;
+  color: #1f2937;
+}
+.card-sub {
+  color: #374151;
+  margin-top: 2px;
+}
+.card-meta {
+  color: #6b7280;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.card-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Lighten the outer containers */
+.courses-display,
+.clubs-display {
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: 0;
+}
+
+/* Keep your existing .edit-btn and .remove-btn, they’ll sit here nicely */
+
+/* Mobile: stack buttons under text */
+@media (max-width: 768px) {
+  .list-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .card-actions {
+    margin-top: 8px;
+  }
+}
