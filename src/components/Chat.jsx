@@ -214,16 +214,17 @@ const Chat = ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          userId: currentUser.id,
-          type: 'message',
-          message: `${message.senderName} sent you a message${chat.type === 'group' ? ` in ${chat.name}` : ''}`,
-          metadata: {
-            chatId: chat.id,
-            messageId: message.id,
-            chatType: chat.type,
-            chatName: chat.name
-          }
-        })
+  userId: currentUser.id,
+  type: 'message',
+  title: 'New Message',  // ← Add this line
+  message: `${message.senderName} sent you a message${chat.type === 'group' ? ` in ${chat.name}` : ''}`,
+  metadata: {
+    chatId: chat.id,
+    messageId: message.id,
+    chatType: chat.type,
+    chatName: chat.name
+  }
+})
       });
     } catch (error) {
       console.error('❌ Error creating chat notification:', error);

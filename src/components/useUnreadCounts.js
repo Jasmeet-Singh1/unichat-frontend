@@ -88,7 +88,7 @@ export const useUnreadCounts = () => {
 
       if (response.ok) {
         const notifications = await response.json();
-        const unreadCount = notifications.filter(n => !n.seen).length;
+        const unreadCount = notifications.filter(n => !n.isRead).length;
         setNotificationUnreadCount(unreadCount);
         
         console.log('📊 Notification unread count updated:', unreadCount);

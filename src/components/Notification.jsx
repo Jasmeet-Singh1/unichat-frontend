@@ -23,12 +23,12 @@ const Notification = ({ role }) => {
     return `${Math.floor(minutes / 1440)} days ago`;
   }, []);
 
-  // 🆕 Updated to include course_peer notification type
+  // Updated to include course_peer notification type
   const getNotificationEmoji = useCallback((type) => {
     switch (type) {
       case 'message': return '💬';
       case 'new user': return '🎉';
-      case 'course_peer': return '🎓'; // 🆕 New emoji for course peer notifications
+      case 'course_peer': return '🎓';
       case 'admin announcement': return '📢';
       case 'liked forum': return '👍';
       case 'request': return '📝';
@@ -131,14 +131,14 @@ const Notification = ({ role }) => {
     } catch (err) {
       console.error('❌ Error loading notifications:', err);
       setError(err.message);
-      // 🆕 Updated fallback data to include course_peer notifications
+      // Updated fallback data to use isRead
       setNotifications([
         {
           _id: 1,
           type: "message",
           message: "Emily Watson sent you a message in Data Structures course",
           createdAt: new Date(Date.now() - 2 * 60 * 1000),
-          seen: false,
+          isRead: false, // ✅ Use isRead instead of seen
           metadata: {
             chatId: "chat_123",
             chatType: "direct",
@@ -147,11 +147,11 @@ const Notification = ({ role }) => {
         },
         {
           _id: 2,
-          type: "course_peer", // 🆕 Example course peer notification
+          type: "course_peer",
           title: "New Course Mate!",
           message: "Sarah Johnson (Student) has joined your CPSC 1420 class for Fall 2025.",
           createdAt: new Date(Date.now() - 3 * 60 * 1000),
-          seen: false,
+          isRead: false, // ✅ Use isRead instead of seen
           metadata: {
             newUserName: "Sarah Johnson",
             newUserRole: "Student",
@@ -166,7 +166,7 @@ const Notification = ({ role }) => {
           type: "message",
           message: "John Carter sent a message in Web Development group",
           createdAt: new Date(Date.now() - 5 * 60 * 1000),
-          seen: false,
+          isRead: false, // ✅ Use isRead instead of seen
           metadata: {
             chatId: "group_456",
             chatType: "group",
@@ -178,21 +178,21 @@ const Notification = ({ role }) => {
           type: "new user",
           message: "Sarah Lee joined your course: Web Development",
           createdAt: new Date(Date.now() - 10 * 60 * 1000),
-          seen: false,
+          isRead: false, // ✅ Use isRead instead of seen
         },
         {
           _id: 5,
           type: "liked forum",
           message: "Mike Johnson liked your post in Machine Learning forum",
           createdAt: new Date(Date.now() - 60 * 60 * 1000),
-          seen: true,
+          isRead: true, // ✅ Use isRead instead of seen
         },
         {
           _id: 6,
           type: "admin announcement",
           message: "New course materials available for Database Systems",
           createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          seen: true,
+          isRead: true, // ✅ Use isRead instead of seen
         },
       ]);
     } finally {
@@ -200,11 +200,13 @@ const Notification = ({ role }) => {
     }
   }, [currentUser]);
 
-  // Mark notification as seen
+  // Mark notification as read - Updated to use isRead
   const markAsSeen = useCallback(async (notificationId) => {
     if (!currentUser) return;
 
     try {
+      console.log('🔄 Marking notification as read:', notificationId);
+      
       const response = await fetch(`http://localhost:3001/api/notifications/seen/${notificationId}`, {
         method: 'PUT',
         headers: {
@@ -216,18 +218,24 @@ const Notification = ({ role }) => {
       if (response.ok) {
         setNotifications(prev => 
           prev.map(n => 
-            n._id === notificationId ? { ...n, seen: true } : n
+            n._id === notificationId ? { ...n, isRead: true } : n // ✅ Use isRead
           )
         );
+        
+        // 🆕 Trigger navbar badge update
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+        console.log('✅ Notification marked as read and event dispatched');
       }
     } catch (err) {
-      console.error('Error marking notification as seen:', err);
+      console.error('Error marking notification as read:', err);
     }
   }, [currentUser]);
 
-  // Mark all as seen
+  // Mark all as read - Updated to use isRead
   const markAllAsSeen = useCallback(async () => {
     if (!currentUser) return;
+
+    console.log('🔄 Starting markAllAsRead for user:', currentUser.id);
 
     try {
       const response = await fetch(`http://localhost:3001/api/notifications/seen-all/${currentUser.id}`, {
@@ -238,15 +246,35 @@ const Notification = ({ role }) => {
         }
       });
 
+      console.log('📡 API Response for markAllAsRead:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
       if (response.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, seen: true })));
+        const responseData = await response.json();
+        console.log('✅ API Success Response:', responseData);
+        
+        setNotifications(prev => {
+          const updated = prev.map(n => ({ ...n, isRead: true })); // ✅ Use isRead
+          console.log('🔄 Updated notifications state:', updated.map(n => ({ id: n._id, isRead: n.isRead })));
+          return updated;
+        });
+        
+        // 🆕 Trigger navbar badge update
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+        console.log('✅ All notifications marked as read and event dispatched');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
       }
     } catch (err) {
-      console.error('Error marking all notifications as seen:', err);
+      console.error('❌ Error in markAllAsRead:', err);
     }
   }, [currentUser]);
 
-  // 🆕 Enhanced to handle course peer notifications
+  // Enhanced to handle course peer notifications
   const handleNotificationClick = useCallback((notification) => {
     // Handle chat notifications
     if (notification.type === 'message' && notification.metadata?.chatId) {
@@ -262,33 +290,27 @@ const Notification = ({ role }) => {
       // Navigate to chat page
       window.location.href = '/chat';
       
-      // Mark as seen
+      // Mark as read
       markAsSeen(notification._id);
     } 
-    // 🆕 Handle course peer notifications
+    // Handle course peer notifications
     else if (notification.type === 'course_peer') {
-      // You could navigate to a user profile or course page
-      // For now, just mark as seen and maybe show more details
       console.log('Course peer notification clicked:', notification);
       
-      // Mark as seen
-      if (!notification.seen) {
+      // Mark as read
+      if (!notification.isRead) { // ✅ Use isRead
         markAsSeen(notification._id);
       }
-      
-      // Optional: Navigate to course page or user profile
-      // window.location.href = `/courses/${notification.metadata?.course}`;
-      // window.location.href = `/profile/${notification.relatedId}`;
     }
     // Handle other notification types
     else {
-      if (!notification.seen) {
+      if (!notification.isRead) { // ✅ Use isRead
         markAsSeen(notification._id);
       }
     }
   }, [markAsSeen]);
 
-  // 🆕 Enhanced Socket.IO setup to handle new-notification event
+  // Enhanced Socket.IO setup to handle new-notification event
   useEffect(() => {
     if (!currentUser) return;
 
@@ -309,7 +331,7 @@ const Notification = ({ role }) => {
       });
     });
 
-    // 🆕 Listen for the new-notification event from our backend
+    // Listen for the new-notification event from our backend
     socketInstance.on('new-notification', (data) => {
       console.log('🔔 New notification received via socket:', data);
       
@@ -324,6 +346,9 @@ const Notification = ({ role }) => {
             icon: '/favicon.ico'
           });
         }
+        
+        // 🆕 Trigger navbar badge update
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       }
     });
 
@@ -338,6 +363,9 @@ const Notification = ({ role }) => {
           icon: '/favicon.ico'
         });
       }
+      
+      // 🆕 Trigger navbar badge update
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     });
 
     setSocket(socketInstance);
@@ -355,7 +383,7 @@ const Notification = ({ role }) => {
     }
   }, [currentUser, loadNotifications]);
 
-  // 🆕 Request notification permission on mount
+  // Request notification permission on mount
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then(permission => {
@@ -369,7 +397,7 @@ const Notification = ({ role }) => {
     filter === 'all' || notification.type === filter
   );
 
-  const unreadCount = notifications.filter(n => !n.seen).length;
+  const unreadCount = notifications.filter(n => !n.isRead).length; // ✅ Use isRead
 
   return (
     <>
@@ -480,7 +508,6 @@ const Notification = ({ role }) => {
           background-color: #f0fff4;
         }
 
-        /* 🆕 Course peer notification styling */
         .notification.course-peer-notification {
           border-left-color: #ffc107;
         }
@@ -518,7 +545,6 @@ const Notification = ({ role }) => {
           margin-top: 4px;
         }
 
-        /* 🆕 Course metadata styling */
         .course-notification-meta {
           background: #f8f9fa;
           padding: 4px 8px;
@@ -634,7 +660,7 @@ const Notification = ({ role }) => {
           filteredNotifications.map((notification, index) => (
             <motion.div
               key={notification._id}
-              className={`notification ${!notification.seen ? 'unread' : ''} ${
+              className={`notification ${!notification.isRead ? 'unread' : ''} ${
                 notification.type === 'message' ? 'chat-notification' : ''
               } ${
                 notification.type === 'course_peer' ? 'course-peer-notification' : ''
@@ -648,7 +674,7 @@ const Notification = ({ role }) => {
                 <div className="notification-emoji">
                   {getNotificationEmoji(notification.type)}
                 </div>
-                <div className={`notification-text ${!notification.seen ? 'unread' : ''}`}>
+                <div className={`notification-text ${!notification.isRead ? 'unread' : ''}`}>
                   {notification.message}
                   
                   {/* Chat notification metadata */}
@@ -663,7 +689,7 @@ const Notification = ({ role }) => {
                     </span>
                   )}
                   
-                  {/* 🆕 Course peer notification metadata */}
+                  {/* Course peer notification metadata */}
                   {notification.type === 'course_peer' && notification.metadata && (
                     <div className="course-notification-meta">
                       📚 {notification.metadata.course} • {notification.metadata.semester} {notification.metadata.year}
