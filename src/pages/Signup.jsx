@@ -481,72 +481,87 @@ const Signup = () => {
         method: 'POST',
         body: formDataToSend, // Don't set Content-Type header - let browser set it
       });
-const submitProfile = async () => {
-  try {
-    console.log(`🎯 Creating ${formData.role} account...`);
-    
-    // Create FormData for file upload
-    const formDataToSend = new FormData();
-    
-    // Add all text fields
-    formDataToSend.append('email', formData.email);
-    formDataToSend.append('firstName', formData.firstName);
-    formDataToSend.append('lastName', formData.lastName);
-    formDataToSend.append('role', formData.role);
-    formDataToSend.append('username', formData.username);
-    formDataToSend.append('password', formData.password);
-    formDataToSend.append('bio', formData.bio);
-    formDataToSend.append('program', formData.program);
-    formDataToSend.append('programType', formData.programType);
-    
-    // Add arrays as JSON strings
-    formDataToSend.append('coursesEnrolled', JSON.stringify(formData.enrolledCourses));
-    formDataToSend.append('expectedGradDate', formData.gradDate);
-    formDataToSend.append('overallGPA', formData.overallGPA);
-    
-    if (formData.role === 'Student') {
-      formDataToSend.append('studentClubs', JSON.stringify(formData.clubs));
-    } else if (formData.role === 'Mentor') {
-      formDataToSend.append('courseExpertise', JSON.stringify(formData.savedCourseExpertise));
-      formDataToSend.append('availability', JSON.stringify(availabilityList));
-      
-      // Add mentor proof file
-      if (formData.mentorProof) {
-        formDataToSend.append('mentorProof', formData.mentorProof);
-      }
-    } else if (formData.role === 'Alumni') {
-      formDataToSend.append('gradDate', formData.alumniGradDate);
-      formDataToSend.append('currentJob', JSON.stringify({
-        company: formData.jobCompany,
-        title: formData.jobTitle,
-        startDate: formData.jobStart
-      }));
-      
-      // Add alumni proof file
-      if (formData.alumniProof) {
-        formDataToSend.append('alumniProof', formData.alumniProof);
-      }
-    }
+      const submitProfile = async () => {
+        try {
+          console.log(`🎯 Creating ${formData.role} account...`);
 
-    console.log('📦 Sending FormData with files...');
-    
-    const response = await fetch('http://localhost:3001/api/users/create-user', {
-      method: 'POST',
-      body: formDataToSend, // Don't set Content-Type header - let browser set it
-    });
+          // Create FormData for file upload
+          const formDataToSend = new FormData();
 
-      const result = await response.json();
-      console.log('📋 Response:', result);
+          // Add all text fields
+          formDataToSend.append('email', formData.email);
+          formDataToSend.append('firstName', formData.firstName);
+          formDataToSend.append('lastName', formData.lastName);
+          formDataToSend.append('role', formData.role);
+          formDataToSend.append('username', formData.username);
+          formDataToSend.append('password', formData.password);
+          formDataToSend.append('bio', formData.bio);
+          formDataToSend.append('program', formData.program);
+          formDataToSend.append('programType', formData.programType);
 
-      if (!response.ok) {
-        alert(result.message || 'Account creation failed');
-        return;
-      }
-    if (!response.ok) {
-      alert(result.message || 'Account creation failed');
-      return;
-    }
+          // Add arrays as JSON strings
+          formDataToSend.append('coursesEnrolled', JSON.stringify(formData.enrolledCourses));
+          formDataToSend.append('expectedGradDate', formData.gradDate);
+          formDataToSend.append('overallGPA', formData.overallGPA);
 
+          if (formData.role === 'Student') {
+            formDataToSend.append('studentClubs', JSON.stringify(formData.clubs));
+          } else if (formData.role === 'Mentor') {
+            formDataToSend.append('courseExpertise', JSON.stringify(formData.savedCourseExpertise));
+            formDataToSend.append('availability', JSON.stringify(availabilityList));
+
+            // Add mentor proof file
+            if (formData.mentorProof) {
+              formDataToSend.append('mentorProof', formData.mentorProof);
+            }
+          } else if (formData.role === 'Alumni') {
+            formDataToSend.append('gradDate', formData.alumniGradDate);
+            formDataToSend.append(
+              'currentJob',
+              JSON.stringify({
+                company: formData.jobCompany,
+                title: formData.jobTitle,
+                startDate: formData.jobStart,
+              })
+            );
+
+            // Add alumni proof file
+            if (formData.alumniProof) {
+              formDataToSend.append('alumniProof', formData.alumniProof);
+            }
+          }
+
+          console.log('📦 Sending FormData with files...');
+
+          const response = await fetch('http://localhost:3001/api/users/create-user', {
+            method: 'POST',
+            body: formDataToSend, // Don't set Content-Type header - let browser set it
+          });
+
+          const result = await response.json();
+          console.log('📋 Response:', result);
+
+          if (!response.ok) {
+            alert(result.message || 'Account creation failed');
+            return;
+          }
+          if (!response.ok) {
+            alert(result.message || 'Account creation failed');
+            return;
+          }
+
+          alert(
+            formData.role === 'Student'
+              ? 'Student account created successfully!'
+              : `${formData.role} request submitted. You will be notified after approval.`
+          );
+
+          navigate('/login');
+        } catch (error) {
+          console.error('Error submitting profile:', error);
+          alert('Something went wrong while submitting your profile.');
+        }
+      };
       alert(
         formData.role === 'Student'
           ? 'Student account created successfully!'
@@ -559,17 +574,6 @@ const submitProfile = async () => {
       alert('Something went wrong while submitting your profile.');
     }
   };
-    alert(formData.role === 'Student' 
-      ? 'Student account created successfully!' 
-      : `${formData.role} request submitted. You will be notified after approval.`);
-    
-    navigate('/login');
-
-  } catch (error) {
-    console.error('Error submitting profile:', error);
-    alert('Something went wrong while submitting your profile.');
-  }
-};
 
   // NEW functions for handling course expertise properly
   const addCurrentExpertise = () => {
@@ -684,7 +688,6 @@ const submitProfile = async () => {
                     <option value=''>Select Role</option>
                     <option value='Student'>Student</option>
                     <option value='Mentor'>Mentor</option>
-                    <option value='Alumni'>Alumni</option>
                   </select>
                 </div>
                 <div className='input-group'>
